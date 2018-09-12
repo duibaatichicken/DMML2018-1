@@ -1,3 +1,5 @@
+package DMML1DS;
+
 class BNode // define nodes with <=2 children
 {
     String label;
@@ -53,6 +55,10 @@ public class BTree
 	root = null;
     }
 
+    public BTree(String l)
+    {
+	root = new BNode(l);
+    }
     public boolean isEmpty()
     {
 	return root == null;
