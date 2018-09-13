@@ -4,12 +4,10 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Random;
 
-import javax.management.RuntimeErrorException;
-
 /**
  * Contains a linked list to identify a subset of
  * the original data. Since the original data is read line
- * by line, this structure keep a track of runs of elements
+ * by line, this structure keeps a track of runs of elements
  * in the subset. Each run is represented by 2 integers,
  * start and end. Start is inclusive, end is exclusive.
  * 
@@ -51,6 +49,15 @@ class Interval {
 	 */
 	public void setStart(int start) { this.start = start; }
 	public void setEnd(int end) { this.end = end; }
+	
+	/************************* *************************/
+	
+	/**
+	 * @description Tests whether an interval is valid.
+	 */
+	public boolean isValid() {
+		return (this.end >= this.start);
+	}
 	
 	/************************* *************************/
 	
@@ -211,7 +218,58 @@ public class DataSubset extends LinkedList<Interval> {
 					}
 				}
 			} else {
-				throw(new RuntimeException("Invalid dataset!"));
+				throw(new RuntimeException("Invalid algorithm!"));
+			}
+		}
+	}
+	
+	/************************* *************************/
+	
+	/**
+	 * @description Removes specified value from the list.
+	 */
+	public void removeValue(int toRemove) {
+		this.removeRun(new Interval(toRemove, toRemove+1));
+	}
+	
+	/************************* *************************/
+	
+	/**
+	 * @description Removes specified interval from the list.
+	 */
+	public void removeRun(Interval toRemove) {
+		
+		// Prune interval by given interval
+		for(int i=0;i<this.size();++i) {
+			Interval tmpToRemove = new Interval(toRemove.getStart(), toRemove.getEnd());
+			Interval curr = this.get(i);
+			if(tmpToRemove.getStart() < curr.getStart()) {
+				tmpToRemove.setStart(curr.getStart());
+			}
+			if(tmpToRemove.getEnd() > curr.getEnd()) {
+				tmpToRemove.setEnd(curr.getEnd());
+			}
+			if(tmpToRemove.isValid()) {
+				if(tmpToRemove.getStart() == curr.getStart()) {
+					if(tmpToRemove.getEnd() == curr.getEnd()) {
+						this.remove(i);
+						break;
+					} else {
+						curr.setStart(tmpToRemove.getEnd());
+					}
+				} else { // tmpToRemove.getStart() > curr.getStart();
+					if(tmpToRemove.getEnd() == curr.getEnd()) {
+						curr.setEnd(tmpToRemove.getStart());
+					} else {
+						int tmp = curr.getEnd();
+						curr.setEnd(tmpToRemove.getStart());
+						if(i == this.size()-1) {
+							this.add(new Interval(tmpToRemove.getEnd(), tmp));
+						} else {
+							this.add(i+1, new Interval(tmpToRemove.getEnd(), tmp));
+						}
+					}
+				}
 			}
 		}
 	}
@@ -223,15 +281,25 @@ public class DataSubset extends LinkedList<Interval> {
 	 */
 	public static void main(String[] args) {
 		DataSubset ds = new DataSubset();
-		Random prng = new Random();
-		for(int i=0;i<10;++i) {
-			int a = prng.nextInt(30);
-			int b = prng.nextInt(30);
-			Interval k = new Interval(Math.min(a, b), Math.max(a, b));
-			System.out.println("+" + k);
-			ds.addRun(k);
-			System.out.println(ds);
-			System.out.println();
-		}
+		ds.addRun(new Interval(100, 500));
+		System.out.println(ds);
+		ds.removeRun(new Interval(150, 200));
+		System.out.println(ds);
+		ds.removeRun(new Interval(120, 140));
+		System.out.println(ds);
+		ds.removeRun(new Interval(143, 147));
+		System.out.println(ds);
+		ds.removeRun(new Interval(250, 300));
+		System.out.println(ds);
+//		Random prng = new Random();
+//		for(int i=0;i<10;++i) {
+//			int a = prng.nextInt(30);
+//			int b = prng.nextInt(30);
+//			Interval k = new Interval(Math.min(a, b), Math.max(a, b));
+//			System.out.println("+" + k);
+//			ds.addRun(k);
+//			System.out.println(ds);
+//			System.out.println();
+//		}
 	}
 }
