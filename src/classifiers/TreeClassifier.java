@@ -51,166 +51,350 @@ public class TreeClassifier
     {
 	BufferedReader br = new BufferedReader (new FileReader (dataSource)); // file reader
 	String line = ""; // temporary variable for reading
-	int rowNumber = 0; // keeps track of which example we are at
-	int exampleIndex = examples[0].getStart(); // will run through examples list, starts from first good one
-	int attributeIndex = attributes[0].getStart(); // will run through attribute list, starts from first good one
+	int rowNumber = -1; // keeps track of which example we are at
+	int exampleIndex = examples.get(0).getStart(); // will run through examples list, starts from first good one
+	int attributeIndex = attributes.get(0).getStart(); // will run through attribute list, starts from first good one
 	String[] row = new String[classColumn+1]; // 43 columns in each row of data
-	
-	// CASE 1 : ALL WINS OR ALL LOSSES OR ALL DRAWS
+
+	/*----------------------------------------------------------------------*/
+	/* CASE 1 : CLASS-PURE
+	 * ALL WINS, or
+	 * ALL LOSSES, or
+	 * ALL DRAWS
+	 * We will return
+	 * A lonely root labelled by the pure class
+	 */
 	String targetTracker[] = {"",""}; // tracks if examples are all of same class
 	int majorityTracker[] = {0,0}; // tracks majority class in given example, stores {win-loss, win-draw}
-	while((line = br.readLine()) != null)
+	while((line = br.readLine()) != null && exampleIndex < examples.size())
 	{
+	    rowNumber++;
 	    /* THE LEGALIZER
 	     * The following block of code finds if the current row is included in the subset
 	     * moves the exampleIndex until either examples end
 	     * or we exceed the row number
 	     * hence confirming where the row number lies w.r.t intervals
 	     */
-	    while (exampleIndex < examples.size())
+	    if (rowNumber < examples.get(exampleIndex).getStart())
 	    {
-		if (rowNumber < examples[exampleIndex].getStart()
+		continue; // we traverse from the left, so rowNumber >= examples[exampleIndex-1].getStart() is ensured
+		// hence we can discard
+	    }
+	    else
+	    {
+		try
+		{
+		    while (rowNumber >= examples.get(exampleIndex++).getEnd()); // look in the next index and so on
+		}
+		catch (IndexOutofBoundsException e) // no more examples
+		{
+		    line = null; // use this as a flag for all breaks other than moving to other cases
+		    break;
+		}
+		/* At this point
+		 * examples[exampleIndex-1].getEnd() <= rowNumber < examples[exampleIndex].getEnd()
+		 * so we can discard if rowNumber < examples[exampleIndex].getStart()
+		 */
+		if (rowNumber < examples.get(exampleIndex).getStart())
+		    continue; //discard
 	    }
 	    /* END OF LEGALIZER */
-	    
+
+	    /*If we reached here
+	     *then this row is in the desired subset
+	     */
 	    row = line.split(",");
-	    // updating majority
-	    if (row[42].equals("win"))
+
+	    /* The following block code
+	     * updates the majorityTracker
+	     * according to the classes in current subset
+	     * because we need it in Case 2 where we don't reread everything
+	     */
+	    if (row[classColumn].equals("win"))
 	    {
-		majority_tracker[0]++;
-		majority_tracker[1]++;
+		majorityTracker[0]++;
+		majorityTracker[1]++;
 	    }
-	    else if (row[42].equals("loss")
-	        majority_tracker[0]--;
+	    else if (row[classColumn].equals("loss"))40
+	        majorityTracker[0]--;
 	    else
-		majority_tracker[1]--;
+		majorityTracker[1]--;
 	     
-	    // if there are different classes, there are consecutive rows with different classes. we detect the first such.
-	    target_tracker[0] = target_tracker[1]; // keeps track of current class and last seen class
-	    target_tracker[1] = row[42];
-	    if (target_tracker[0] == target_tracker[1]) // a change of class breaks this case
-		break;
-	}	     
-	if (line == null) //so I know it didn't break due to class change
-	    return (new Tree(target_tracker[1])); // lonely root with label of class
-
-	// CASE 2 : EMPTY ATTRIBUTE LIST
-	if (attributes.equals({[0,0]})) // if there are no attributes
-	{
-	    if (line == null) // if I was done reading the data. should I check row number == 67557 instead?
-		return (new Tree(majority_tracker[0] > 0 && majority_tracker[1] > 0? "win" : (majority_tracker[0] < majority_tracker[1] ? "loss" : "draw"))); //single node with majority
-	    else // I should read the rest of the data and calculate majority
-	    {
-		while((line = br.readLine()) != null)
-		{
-		    // to see only elements that are in current subset
-		    if (row_number >= examples[exampleIndex][1]) // outside current range
-			exampleIndex++;
-		    try
-		    {
-			if (row_number++ < examples[exampleIndex][0]) // also outside next range
-			    continue; // discard
-		    }
-		    catch (IndexOutOfBoundsException e) // no more examples left
-		    {
-			break;
-		    }
-
-		    // majority update
-		    if (row[42].equals("win"))
-		    {
-			majority_tracker[0]++;
-			majority_tracker[1]++;
-		    }
-		    else if (row[42].equals("loss")
-			majority_tracker[0]--;
-		    else
-			majority_tracker[1]--;
-	       }
-	       return (new Tree(majority_tracker[0] > 0 && majority_tracker[1] > 0? "win" : (majority_tracker[0] < majority_tracker[1] ? "loss" : "draw"))); //single node with majority
-	    }
+	    /* The following block of code
+	     * compares the latest seen class with the immediate previous one
+	     * if there are different classes, there are consecutive rows with different classes
+	     * we detect the first such.
+	     */
+	    targetTracker[0] = targetTracker[1];
+	    targetTracker[1] = row[classColumn];
+	    if (targetTracker[0] != targetTracker[1]) // then we know this base case does not hold
+		break; // so we move on to other cases
+  
+	    /* if the loop above did not detect a change of class
+	     * we can say there is just one class in the examples
+	     */
 	}
-	    
-	br.close();
+	// the pure class case
+        if (line == null) //so I know it didn't break due to class change
+	    return (new Tree(targetTracker[1])); // lonely root with label of class
+    
+	/* END OF CASE 1 */
 
-	// CASE 3 : NONE OF THE BASE CASES CAME UP
+	/*----------------------------------------------------------------------*/
+
+	/* CASE 2 : 
+	 * EMPTY ATTRIBUTE LIST 
+	 * We will return
+	 * A lonely root with majority of the class
+	 */
+	if (attributes.get(0).getStart() == attributes.get(0).getEnd()) // if there are no attributes
+	{
+	    if (rowNumber == dataLength) // if I was done reading the data, I can return right away
+		return (new Tree(majorityTracker[0] > 0 && majorityTracker[1] > 0? "win" : (majorityTracker[0] < majorityTracker[1] ? "loss" : "draw"))); //single node with majority
+	    else // if there is data unread in Case 1, read it and update majority accordingly
+	    {
+		while((line = br.readLine()) != null && exampleIndex < examples.size())
+		{
+		    rowNumber++;
+		    /* THE LEGALIZER 2.0 (it's the same, really)
+		     * The following block of code finds if the current row is included in the subset
+		     * moves the exampleIndex until either examples end
+		     * or we exceed the row number
+		     * hence confirming where the row number lies w.r.t intervals
+		     */
+		    if (rowNumber < examples.get(exampleIndex).getStart())
+		    {
+			continue; // we traverse from the left, so rowNumber >= examples[exampleIndex-1].getStart() is ensured
+			// hence we can discard
+		    }
+		    else
+		    {
+			try
+			{
+			    while (rowNumber >= examples.get(exampleIndex++).getEnd()); // look in the next index and so on
+			}
+			catch (IndexOutofBoundsException e) // no more examples
+			{
+			    line = null; // use this as a flag for all breaks other than moving to other cases
+			    break;
+			}
+			/* At this point (recall we increment within while loop)
+			 * examples[exampleIndex-2].getEnd() <= rowNumber < examples[exampleIndex-1].getEnd()
+			 * so we can discard if rowNumber < examples[exampleIndex-1].getStart()
+			 */
+			if (rowNumber < examples.get(exampleIndex-1).getStart())
+			    continue; //discard
+		    }
+		    /* END OF LEGALIZER */
+
+		    /* The following block code
+		     * updates the majorityTracker
+		     * according to the classes in current subset
+		     * because we need it in Case 2 where we don't reread everything
+		     */
+		    if (row[classColumn].equals("win"))
+		    {
+			majorityTracker[0]++;
+		        majorityTracker[1]++;
+		    }
+		    else if (row[classColumn].equals("loss"))
+			majorityTracker[0]--;
+		    else
+			majorityTracker[1]--;
+	        }                     	     
+		return (new Tree(majorityTracker[0] > 0 && majorityTracker[1] > 0? "win" : (majorityTracker[0] < majorityTracker[1] ? "loss" : "draw"))); //single node with majority
+	    }
+	    br.close();
+       }    
+        /* END OF CASE 2 */
+
+        /*----------------------------------------------------------------------*/        
+	
+	/* CASE 3 : NONE OF THE BASE CASES CAME UP
+	 * This is where it gets real
+	 * Now we use Shannon entropy to find best classifying attribute
+	 * Then we branch on that attribute and recurse
+	 */
 	int bestAttribute = (new TreeClassifier()).bestAttribute(examples, attributes);// pick best attribute A according to Shannon entropy
-	BufferedReader in = new BufferedReader (new FileReader ("../data/connect-4-full.data"));
+	br = new BufferedReader (new FileReader (dataSource)); // PANDA LISTEN can I do this
+	exampleIndex = examples.get(0).getStart(); // reset beginning of subset
+	rowNumber = 0; // reset top of file
+	DataSubset bExamples = new DataSubset();
+	DataSubset oExamples = new DataSubset();
+	DataSubset xExamples = new DataSubset(); // these 3 will hold A=v_i subsets
 	// for each possible value v_i, build Examples(v_i)
 	    // CASE v_i.1 empty. then add majority leaf node
 	    // CASE v_i.2 recurse
-
-	return (new Tree()); //dummy return statement, will remove later
+	while((line = br.readLine()) != null && exampleIndex < examples.size())
+        {
+	    rowNumber++;
+	    /* THE LEGALIZER is back yo
+	     * The following block of code finds if the current row is included in the subset
+	     * moves the exampleIndex until either examples end
+	     * or we exceed the row number
+	     * hence confirming where the row number lies w.r.t intervals
+	     */
+	    if (rowNumber < examples.get(exampleIndex).getStart())
+	    {
+		continue; // we traverse from the left, so rowNumber >= examples[exampleIndex-1].getStart() is ensured
+		// hence we can discard
+	    }
+	    else
+	    {
+		try
+		{
+		    while (rowNumber >= examples.get(exampleIndex++).getEnd()); // look in the next index and so on
+		}
+		catch (IndexOutofBoundsException e) // no more examples
+		{
+		    line = null; // use this as a flag for all breaks other than moving to other cases
+		    break;
+		}
+		/* At this point (recall we increment within while loop)
+		 * examples[exampleIndex-2].getEnd() <= rowNumber < examples[exampleIndex-1].getEnd()
+		 * so we can discard if rowNumber < examples[exampleIndex-1].getStart()
+		 */
+		if (rowNumber < examples.get(exampleIndex-1).getStart())
+		    continue; //discard
+	    }
+	    /* END OF LEGALIZER */
+	    
+	    /*The following block of code
+	     *builds Examples(v_i)
+	     */
+	    row = line.split(",");
+	    if (row[currentAttribute].equals("b"))
+		bExamples.addValue(currentAttribute);    // add current example to bExamples
+	    else if (row[currentAttribute].equals("o"))
+		oExamples.addValue(currentAttribute); // and so on
+	    else
+		xExamples.addValue(currentAttribute);
+	    
+	}
+	// remove function required to proceed.
+	
     }
 
-    private int bestAttribute(LinkedList<int[]> examples, LinkedList<int[]> attributes) throws IOException, IndexOutOfBoundsException
+    private int bestAttribute(DataSubset examples, DataSubset attributes) throws IOException, IndexOutOfBoundsException
     {
-	String[] row = new String[43]; // I row of data
+	String[] row = new String[classColumn+1]; // I row of data
 	BufferedReader br;
 	String line = "";
-	int attributeIndex = attributes[0][0]; // runs over attributes, starts at first good one
-        int exampleIndex = examples[0][0]; //similarly for examples
+	int attributeIndex = attributes.get(0).getStart(); // runs over attributes, starts at first good one
+        int exampleIndex = examplesget(0).getStart(); //similarly for examples
 	int rowNumber = 0;
-	LinkedList<int[]> bExamples = new LinkedList<int[]>();
-	LinkedList<int[]> oExamples = new LinkedList<int[]>();
-	LinkedList<int[]> xExamples = new LinkedList<int[]>(); // these will hold A=v_i subsets
+	DataSubset bExamples = new DataSubset();
+	DataSubset oExamples = new DataSubset();
+	DataSubset xExamples = new DataSubset(); // these 3 will hold A=v_i subsets
 	int minAttribute = -1; // best Attribute
 	double shannon = 1, tempshannon = 1;
-	for (int currentAttribute = 0; currentAttribute < 42 ; currentAttribute++)
+	for (int currentAttribute = 0; currentAttribute < classColumn ; currentAttribute++)
 	{
-	    br = new BufferedReader (new FileReader ("../data/connect-4-full.data");
-	    exampleIndex = examples[0][0]; //reset top of file
+	    br = new BufferedReader (new FileReader (dataSource);
+	    exampleIndex = examples.get(0).getStart(); //reset top of file
 	    bExamples.clear();
 	    oExamples.clear();
 	    xExamples.clear(); // clean out the lists from previous iteration
-	    // to see only the indicated subset of attributes
-	    if(currentAttribute >= attributes[attributeIndex][1])// beyond current range
-		attributeIndex++;
-	    try
+
+	    /* THE LEGALIZER, but for ATTRIBUTES, because EQUALITE
+	     * The following block of code finds if the current attribute is included in the attribute set
+	     * moves the attributeIndex until either attributes end
+	     * or we exceed the total number of attributes
+	     * hence confirming where the attribute number lies w.r.t intervals
+	     */
+	    if (currentAttribute < attributes.get(attributeIndex).getStart())
 	    {
-		if(currentAttribute < attributes[attributeIndex][0]) // too low for next range
-		    continue;
+		continue; // we traverse from the left, so currentAttribute >= attributes.get(attributeIndex).getEnd() is ensured
+		// hence we can discard
 	    }
-	    catch (IndexOutOfBoundsException e)
+	    else
 	    {
-		line = null; // again this is a flag for attributes running out. don't know if needed.
-		break;
-	    }
-	    while ((line = br.readLine()) != null)
-	    {
-		// to see only elements that are in current subset of data
-		if (rowNumber >= examples[exampleIndex][1]) // outside current range
-		    exampleIndex++;
 		try
 		{
-		    if (rowNumber++ < examples[exampleIndex][0]) // also outside next range
-		    continue; // discard
+		    while (currentAttribute >= attributes.get(attributeIndex++).getEnd()); // look in the next index and so on
 		}
-		catch (IndexOutOfBoundsException e) // no more examples left
+		catch (IndexOutofBoundsException e) // no more attributes to check
 		{
-		    line = null; // using line itself as a flag for not seeing a class change
+		    line = null; // use this as a flag
 		    break;
 		}
-		row = line.split(",");
-		if (row[currentAttribute].equals("b"))
-		    // add current example to bExamples
-		else if (row[currentAttribute].equals("o"))
-		    // add current example to oExamples
-		else
-		    // add current example to bExamples
-
+		/* At this point (recall we increment within while loop)
+		 * attrubutes[attributeIndex-2].getEnd() <= currentAttribute < attributes[attributeIndex-1].getEnd()
+		 * so we can discard if currentAttribute < attributes[attributeIndex-1].getStart()
+		 */
+		if (currentAttribute < attributes.get(attributeIndex-1).getStart())
+		    continue; //discard
 	    }
-	    br.close();
-	// compute Shannon entropies
+	   /* END OF LEGALIZER */
+	   while((line = br.readLine()) != null && exampleIndex < examples.size())
+	   {
+	       rowNumber++;
+	       /* THE LEGALIZER 3.0 (this time for examples again)
+		* The following block of code finds if the current row is included in the subset
+		* moves the exampleIndex until either examples end
+		* or we exceed the row number
+		* hence confirming where the row number lies w.r.t intervals
+		*/
+	       if (rowNumber < examples.get(exampleIndex).getStart())
+	       {
+		   continue; // we traverse from the left, so rowNumber >= examples[exampleIndex-1].getStart() is ensured
+		   // hence we can discard
+	       }
+	       else
+	       {
+		   try
+		   {
+		       while (rowNumber >= examples.get(exampleIndex++).getEnd()); // look in the next index and so on
+		   }
+		   catch (IndexOutofBoundsException e) // no more examples
+		   {
+		       line = null; // use this as a flag for all breaks other than moving to other cases
+		       break;
+		   }
+		   /* At this point (recall we increment within while loop)
+		    * examples[exampleIndex-2].getEnd() <= rowNumber < examples[exampleIndex-1].getEnd()
+		    * so we can discard if rowNumber < examples[exampleIndex-1].getStart()
+		    */
+		   if (rowNumber < examples.get(exampleIndex-1).getStart())
+		       continue; //discard
+	       }
+	       /* END OF LEGALIZER */
+			     
+	       /*The following block of code
+		*builds Examples(v_i)
+		*/
+	       row = line.split(",");
+	       if (row[currentAttribute].equals("b"))
+		   bExamples.addValue(currentAttribute);    // add current example to bExamples
+	       else if (row[currentAttribute].equals("o"))
+		   oExamples.addValue(currentAttribute); // and so on
+	       else
+		   xExamples.addValue(currentAttribute);
+
+	   }
+	br.close();
+	/* BIG TODO PANDA LISTEN : pliss to review my usage of multiple readers. can we do better? */
+
+	/* The following block of code
+	 * Wants to compute Shannon entropies of {b,o,x}Examples
+	 * but cannot
+	 * because we have not implemented Shannon yet
+	 * The following block of code
+	 * is tired
+	 * yawn
+	 * that's called a transferred epithet
+	 * #EnglishTA
+	 */
 	  // tempShannon = Shannon(b) + Shannon(o) + Shannon (x)
 	  // if tempShannon < Shannon, Shannon = tempShannon; minAttribute = currentAttribute; 
-	}
-	return minAttributes;
+        }			      
+	return minAttribute;
     }
-    private double shannonEntropy(LinkedList examples)
+    private double shannonEntropy(DataSubset posExamples) // Examples by position
     {
 	// implement, or use external package
 	return 0; // dummy return statement, will modify later
     }
 }
+    
 
