@@ -18,59 +18,61 @@
     Return Root
 */
 import java.io.*;
-import ds.Tree;
-import java.util.LinkedList;
+import ds.*;
 
 public class TreeClassifier
 {
-    static int target_attribute = 42; // 43 columns. 42 attributes and 1 class.
+    static String dataSource = "../data/connect-4-full.data"; // data source
+    static int dataLength = 67557; // number of rows
+    static int classColumn = 42; // 43 columns. 42 attributes and 1 class.
+
+    /* MAIN METHOD
+       calls ID3 on the entire dataset and all attributes
+    */
     public static void main(String args[]) throws IOException
     {
 	/*
-	  Examples : 0,1-array of line numbers
-	  Target Attribute : index
-	  Attributes : array of indices
+	  Examples : DataSubset indicator
+	  Target Attribute : Integer index
+	  Attributes : DataSubset indicator
 	 */
 	/*
-	  BIG TODO BIG TODO BIG TODO
 	  PANDA LISTEN
-	  Currently examples and attributes are 0-1 indicator arrays. WE CANNOT ACTUALLY DO THAT.
-	  Working on using a dynamically sized DS, and store only required indices, or better still ranges of indices.
+	  I am reworking this using your pretty DataSubset class
 	 */
-	int[] temp = {0, 67557};
-	LinkedList<int[]> examples = (new LinkedList<int[]>()).add(temp);
-	temp = {0, 42};
-	LinkedList<int[]> attributes = (new LinkedList<int[]>()).add(temp);
-	(new TreeClassifier()).ID3(examples, attributes); // calls ID3 with Examples = whole set and all attributes
+
+	// initialize to entire dataset and all attributes
+	DataSubset examples = (new DataSubset()).addRun(new Interval(0,dataLength));
+	DataSubset attributes = (new DataSubset()).addRun(new Interval(0,classColumn));
+	(new TreeClassifier()).ID3(examples, attributes); // initial call to ID3 algorithm
     }
 
     private Tree ID3(int examples[], int attributes[]) throws IOException, IndexOutOfBoundsException //target_attribute is the same throughout
     {
-	BufferedReader br = new BufferedReader (new FileReader ("../data/connect-4-full.data")); // file reader
+	BufferedReader br = new BufferedReader (new FileReader (dataSource)); // file reader
 	String line = ""; // temporary variable for reading
-	int row_number = 0; // keeps track of which example we are at
-	int exampleIndex = examples[0][0]; // will run through examples list, starts from first good one
-	int attributeIndex = attributes[0][0]; // will run through attribute list, starts from first good one
-	String[] row = new String[43]; // 43 columns in each row of data
-	int[] range = {0,0};
+	int rowNumber = 0; // keeps track of which example we are at
+	int exampleIndex = examples[0].getStart(); // will run through examples list, starts from first good one
+	int attributeIndex = attributes[0].getStart(); // will run through attribute list, starts from first good one
+	String[] row = new String[classColumn+1]; // 43 columns in each row of data
+	
 	// CASE 1 : ALL WINS OR ALL LOSSES OR ALL DRAWS
-	String target_tracker[] = {"",""}; // tracks if examples are all of same class
-	int majority_tracker[] = range; // tracks majority class in given example, stores {win-loss, win-draw}
+	String targetTracker[] = {"",""}; // tracks if examples are all of same class
+	int majorityTracker[] = {0,0}; // tracks majority class in given example, stores {win-loss, win-draw}
 	while((line = br.readLine()) != null)
 	{
-	    // to see only elements that are in current subset
-	    if (row_number >= examples[exampleIndex][1]) // outside current range
-		exampleIndex++;
-	    try
+	    /* THE LEGALIZER
+	     * The following block of code finds if the current row is included in the subset
+	     * moves the exampleIndex until either examples end
+	     * or we exceed the row number
+	     * hence confirming where the row number lies w.r.t intervals
+	     */
+	    while (exampleIndex < examples.size())
 	    {
-		if (row_number++ < examples[exampleIndex][0]) // also outside next range
-		    continue; // discard
+		if (rowNumber < examples[exampleIndex].getStart()
 	    }
-	    catch (IndexOutOfBoundsException e) // no more examples left
-	    {
-		line = null; // using line itself as a flag for not seeing a class change
-		break;
-	    }
+	    /* END OF LEGALIZER */
+	    
 	    row = line.split(",");
 	    // updating majority
 	    if (row[42].equals("win"))
