@@ -1,24 +1,30 @@
-// simple Tree data structure, designed for String labels
+/* Tree Data Structure
+ * unbounded branching
+ * named branches (String)
+ * laballed nodes (String)
+ */
+
 package ds;
-import java.utils.LinkedList;
+import java.util.HashMap;
+
 class TreeNode
 {
     // attributes of a Tree Node
     private String label;
-    private LinkedList<TreeNode> children;
+    private HashMap children; // named branches
 
     // default constructor
     public TreeNode()
     {
 	this.label = "";
-	this.children = new LinkedList<TreeNode>();
+	this.children = new HashMap();
     }
 
     // constructor when label is given
     public TreeNode(String l)
     {
 	this.label = l;
-	this.children = new LinkedList<TreeNode>();
+	this.children = new HashMap();
     }
 
     // getters
@@ -26,7 +32,7 @@ class TreeNode
     {
 	return this.label;
     }
-    public LinkedList<TreeNode> getChildren()
+    public HashMap getChildren()
     {
 	return this.children;
     }
@@ -36,7 +42,7 @@ class TreeNode
     {
 	this.label = l;
     }
-    public void setChildren(LinkedList<TreeNode> c)
+    public void setChildren(HashMap c)
     {
 	this.children = c;
     }
@@ -48,9 +54,9 @@ class TreeNode
     }
 
     // add a child given its label
-    public void addChild(String l)
+    public void addChild(String branch, String labl)
     {
-	this.children.add(new TreeNode(l));
+	this.children.put(branch, new TreeNode(labl));
     }
     
 }
@@ -84,6 +90,12 @@ public class Tree
     public void setRoot(TreeNode n)
     {
 	this.root = n;
+    }
+
+    // add a subtree at root
+    public void addSubtree(String branch, Tree t)
+    {
+	this.root.getChildren().put(branch, t.getRoot());
     }
 }
 

@@ -16,9 +16,20 @@
 	   Else below this branch add a new subtree ID3 (Examples(v_i), Target_Attribute, Attributes\setdiff{A})
     End
     Return Root
+
 */
+
+/* BIG TODO PANDA LISTEN (details inline)
+# | ISSUE | LINE NOS. (fuzzy) |
+----------------------------------
+1 | Interval.getStart(), Interval.getEnd() inaccessible from here | 50, 60, in and around every LEGALIZER... |
+2 | please review my reuse of reader objects | 230, 365, 440 |
+3 | perhaps need better emptiness check for DataSubset, including case {[r,r)} | 310 |
+*/
+
 import java.io.*;
-import ds.*;
+import ds.DataSubset;
+import ds.Tree;
 
 public class TreeClassifier
 {
@@ -36,18 +47,14 @@ public class TreeClassifier
 	  Target Attribute : Integer index
 	  Attributes : DataSubset indicator
 	 */
-	/*
-	  PANDA LISTEN
-	  I am reworking this using your pretty DataSubset class
-	 */
 
 	// initialize to entire dataset and all attributes
-	DataSubset examples = (new DataSubset()).addRun(new Interval(0,dataLength));
+	DataSubset examples = (new DataSubset()).addRun(new Interval(0,dataLength)); //PANDA TODO : I need to be able to do this or something like this. Perhaps a singleton initialization functionality.
 	DataSubset attributes = (new DataSubset()).addRun(new Interval(0,classColumn));
 	(new TreeClassifier()).ID3(examples, attributes); // initial call to ID3 algorithm
     }
 
-    private Tree ID3(int examples[], int attributes[]) throws IOException, IndexOutOfBoundsException //target_attribute is the same throughout
+    private Tree ID3(DataSubset examples, DataSubset attributes) throws IOException, IndexOutOfBoundsException //target_attribute is the same throughout
     {
 	BufferedReader br = new BufferedReader (new FileReader (dataSource)); // file reader
 	String line = ""; // temporary variable for reading
@@ -86,7 +93,7 @@ public class TreeClassifier
 		{
 		    while (rowNumber >= examples.get(exampleIndex++).getEnd()); // look in the next index and so on
 		}
-		catch (IndexOutofBoundsException e) // no more examples
+		catch (IndexOutOfBoundsException e) // no more examples
 		{
 		    line = null; // use this as a flag for all breaks other than moving to other cases
 		    break;
@@ -115,7 +122,7 @@ public class TreeClassifier
 		majorityTracker[0]++;
 		majorityTracker[1]++;
 	    }
-	    else if (row[classColumn].equals("loss"))40
+	    else if (row[classColumn].equals("loss"))
 	        majorityTracker[0]--;
 	    else
 		majorityTracker[1]--;
@@ -147,65 +154,67 @@ public class TreeClassifier
 	 * We will return
 	 * A lonely root with majority of the class
 	 */
-	if (attributes.get(0).getStart() == attributes.get(0).getEnd()) // if there are no attributes
+	
+	/* The following while loop
+	 * finishes reading the data and if it wasn't done already
+	 * and computes the overall majority
+	 * the majority computation might be unnecessary in some subcases of case 2
+	 * but might be requried later
+	 */
+	while((line = br.readLine()) != null && exampleIndex < examples.size())
 	{
-	    if (rowNumber == dataLength) // if I was done reading the data, I can return right away
-		return (new Tree(majorityTracker[0] > 0 && majorityTracker[1] > 0? "win" : (majorityTracker[0] < majorityTracker[1] ? "loss" : "draw"))); //single node with majority
-	    else // if there is data unread in Case 1, read it and update majority accordingly
+	    rowNumber++;
+	    /* THE LEGALIZER 2.0 (it's the same, really)
+	     * The following block of code finds if the current row is included in the subset
+	     * moves the exampleIndex until either examples end
+	     * or we exceed the row number
+	     * hence confirming where the row number lies w.r.t intervals
+	     */
+	    if (rowNumber < examples.get(exampleIndex).getStart())
 	    {
-		while((line = br.readLine()) != null && exampleIndex < examples.size())
-		{
-		    rowNumber++;
-		    /* THE LEGALIZER 2.0 (it's the same, really)
-		     * The following block of code finds if the current row is included in the subset
-		     * moves the exampleIndex until either examples end
-		     * or we exceed the row number
-		     * hence confirming where the row number lies w.r.t intervals
-		     */
-		    if (rowNumber < examples.get(exampleIndex).getStart())
-		    {
-			continue; // we traverse from the left, so rowNumber >= examples[exampleIndex-1].getStart() is ensured
-			// hence we can discard
-		    }
-		    else
-		    {
-			try
-			{
-			    while (rowNumber >= examples.get(exampleIndex++).getEnd()); // look in the next index and so on
-			}
-			catch (IndexOutofBoundsException e) // no more examples
-			{
-			    line = null; // use this as a flag for all breaks other than moving to other cases
-			    break;
-			}
-			/* At this point (recall we increment within while loop)
-			 * examples[exampleIndex-2].getEnd() <= rowNumber < examples[exampleIndex-1].getEnd()
-			 * so we can discard if rowNumber < examples[exampleIndex-1].getStart()
-			 */
-			if (rowNumber < examples.get(exampleIndex-1).getStart())
-			    continue; //discard
-		    }
-		    /* END OF LEGALIZER */
-
-		    /* The following block code
-		     * updates the majorityTracker
-		     * according to the classes in current subset
-		     * because we need it in Case 2 where we don't reread everything
-		     */
-		    if (row[classColumn].equals("win"))
-		    {
-			majorityTracker[0]++;
-		        majorityTracker[1]++;
-		    }
-		    else if (row[classColumn].equals("loss"))
-			majorityTracker[0]--;
-		    else
-			majorityTracker[1]--;
-	        }                     	     
-		return (new Tree(majorityTracker[0] > 0 && majorityTracker[1] > 0? "win" : (majorityTracker[0] < majorityTracker[1] ? "loss" : "draw"))); //single node with majority
+		continue; // we traverse from the left, so rowNumber >= examples[exampleIndex-1].getStart() is ensured
+		// hence we can discard
 	    }
-	    br.close();
-       }    
+	    else
+	    {
+		try
+		{
+		    while (rowNumber >= examples.get(exampleIndex++).getEnd()); // look in the next index and so on
+		}
+		catch (IndexOutOfBoundsException e) // no more examples
+		{
+		    line = null; // use this as a flag for all breaks other than moving to other cases
+		    break;
+		}
+		/* At this point (recall we increment within while loop)
+		 * examples[exampleIndex-2].getEnd() <= rowNumber < examples[exampleIndex-1].getEnd()
+		 * so we can discard if rowNumber < examples[exampleIndex-1].getStart()
+		 */
+		if (rowNumber < examples.get(exampleIndex-1).getStart())
+		    continue; //discard
+	    }
+	    /* END OF LEGALIZER */
+	    
+	    /* The following block code
+	     * updates the majorityTracker
+	     * according to the classes in current subset
+	     * because we need it in Case 2 where we don't reread everything
+	     */
+	    if (row[classColumn].equals("win"))
+	    {
+		majorityTracker[0]++;
+		majorityTracker[1]++;
+	    }
+	    else if (row[classColumn].equals("loss"))
+		majorityTracker[0]--;
+	    else
+		majorityTracker[1]--;
+	}                     	     
+	if (attributes.isEmpty()) // if there are no attributes
+	    return (new Tree(majorityTracker[0] > 0 && majorityTracker[1] > 0? "win" : (majorityTracker[0] < majorityTracker[1] ? "loss" : "draw"))); //single node with majority
+    
+	br.close();
+       
         /* END OF CASE 2 */
 
         /*----------------------------------------------------------------------*/        
@@ -222,9 +231,10 @@ public class TreeClassifier
 	DataSubset bExamples = new DataSubset();
 	DataSubset oExamples = new DataSubset();
 	DataSubset xExamples = new DataSubset(); // these 3 will hold A=v_i subsets
-	// for each possible value v_i, build Examples(v_i)
-	    // CASE v_i.1 empty. then add majority leaf node
-	    // CASE v_i.2 recurse
+
+	/* The following while loop
+	 * reads the data and creates Example[A=v_i] subsets according to best Attribute A
+	 */
 	while((line = br.readLine()) != null && exampleIndex < examples.size())
         {
 	    rowNumber++;
@@ -245,7 +255,7 @@ public class TreeClassifier
 		{
 		    while (rowNumber >= examples.get(exampleIndex++).getEnd()); // look in the next index and so on
 		}
-		catch (IndexOutofBoundsException e) // no more examples
+		catch (IndexOutOfBoundsException e) // no more examples
 		{
 		    line = null; // use this as a flag for all breaks other than moving to other cases
 		    break;
@@ -263,16 +273,80 @@ public class TreeClassifier
 	     *builds Examples(v_i)
 	     */
 	    row = line.split(",");
-	    if (row[currentAttribute].equals("b"))
-		bExamples.addValue(currentAttribute);    // add current example to bExamples
-	    else if (row[currentAttribute].equals("o"))
-		oExamples.addValue(currentAttribute); // and so on
+	    if (row[bestAttribute].equals("b"))
+		bExamples.addValue(bestAttribute);    // add current example to bExamples
+	    else if (row[bestAttribute].equals("o"))
+		oExamples.addValue(bestAttribute); // and so on
 	    else
-		xExamples.addValue(currentAttribute);
+		xExamples.addValue(bestAttribute);
 	    
 	}
-	// remove function required to proceed.
+	/* now we shall build the root node
+	 * followed by, recursively, its children
+	 */
 	
+	// figure out name of attribute from column number
+	/* The Connect4 board is numbered as
+	 * 6 ------
+	 * 5 ------
+	 * 4 ------
+	 * 3 ------
+	 * 2 ------
+	 * 1 ------
+	 *   abcdef
+	 */
+	/* Attributes appear in dataset as
+	 * 1. a1
+	 * 2. a2
+	 * ...
+	 * 6. a6
+	 * 7. b1
+	 * ...
+	 * 12. b6
+	 * ...
+	 * ...
+	 * 42. g6
+	 */
+	/* So where attribute = 6q + r, r < 6, '
+	 * a'+q is the letter and 
+	 * r is the number (but we write 0 as 6) */
+	
+	Tree thisLevel = new Tree(Character.toString(97 + (bestAttribute / 6)) + (bestAttribute % 6 == 0 ? 6 : bestAttribute % 6)); // node with attribute label is the root of subtree at this recursion depth
+	attributes.removeValue(bestAttribute); // all attributes other than the one we already branched on
+
+	/* PANDA TODO
+	 * how does emptiness work in DS?
+	 * currently have accounted for both possibilities here itself
+	 * perhaps you should define something like trueEmpty in DS
+	 */
+	
+	/* PRAISE THE RECURSION
+	 * The following block of code
+	 * checks if each Examples(v_i) is empty or not
+	 * if empty, creates single majority node for the corresponding child
+	 * if not empty, recurses to create non-trivial subtree
+	 */
+
+	TreeClassifier tc = new TreeClassifier(); // your friendly neighbourhood object, only for function calls, jisko bachpan mein bina samjhe banate theyy
+	// branch A="b", board configurationss where position A is left blank
+	if (bExamples.isEmpty() || bExamples.get(0).getStart() == bExamples.get(0).getEnd())
+	    thisLevel.addSubtree("b", new Tree(majorityTracker[0] > 0 && majorityTracker[1] > 0? "win" : (majorityTracker[0] < majorityTracker[1] ? "loss" : "draw"))); // single majority node as child
+	else
+	    thisLevel.addSubtree("b", tc.ID3(bExamples, attributes));
+
+	// branch A="o", board configurationss where position A is taken by player o	
+	if (oExamples.isEmpty() || oExamples.get(0).getStart() == oExamples.get(0).getEnd())
+	    thisLevel.addSubtree("o", new Tree(majorityTracker[0] > 0 && majorityTracker[1] > 0? "win" : (majorityTracker[0] < majorityTracker[1] ? "loss" : "draw"))); // single majority node as child
+	else
+	    thisLevel.addSubtree("o", tc.ID3(oExamples, attributes));
+
+	// branch A="x", board configurationss where position A is taken by player x
+	if (xExamples.isEmpty() || xExamples.get(0).getStart() == xExamples.get(0).getEnd())
+	    thisLevel.addSubtree("x", new Tree(majorityTracker[0] > 0 && majorityTracker[1] > 0? "win" : (majorityTracker[0] < majorityTracker[1] ? "loss" : "draw"))); // single majority node as child
+	else
+	    thisLevel.addSubtree("x", tc.ID3(xExamples, attributes));
+
+	return thisLevel;
     }
 
     private int bestAttribute(DataSubset examples, DataSubset attributes) throws IOException, IndexOutOfBoundsException
@@ -281,7 +355,7 @@ public class TreeClassifier
 	BufferedReader br;
 	String line = "";
 	int attributeIndex = attributes.get(0).getStart(); // runs over attributes, starts at first good one
-        int exampleIndex = examplesget(0).getStart(); //similarly for examples
+        int exampleIndex = examples.get(0).getStart(); //similarly for examples
 	int rowNumber = 0;
 	DataSubset bExamples = new DataSubset();
 	DataSubset oExamples = new DataSubset();
@@ -290,7 +364,7 @@ public class TreeClassifier
 	double shannon = 1, tempshannon = 1;
 	for (int currentAttribute = 0; currentAttribute < classColumn ; currentAttribute++)
 	{
-	    br = new BufferedReader (new FileReader (dataSource);
+	    br = new BufferedReader (new FileReader (dataSource));
 	    exampleIndex = examples.get(0).getStart(); //reset top of file
 	    bExamples.clear();
 	    oExamples.clear();
@@ -313,7 +387,7 @@ public class TreeClassifier
 		{
 		    while (currentAttribute >= attributes.get(attributeIndex++).getEnd()); // look in the next index and so on
 		}
-		catch (IndexOutofBoundsException e) // no more attributes to check
+		catch (IndexOutOfBoundsException e) // no more attributes to check
 		{
 		    line = null; // use this as a flag
 		    break;
@@ -346,7 +420,7 @@ public class TreeClassifier
 		   {
 		       while (rowNumber >= examples.get(exampleIndex++).getEnd()); // look in the next index and so on
 		   }
-		   catch (IndexOutofBoundsException e) // no more examples
+		   catch (IndexOutOfBoundsException e) // no more examples
 		   {
 		       line = null; // use this as a flag for all breaks other than moving to other cases
 		       break;
@@ -373,7 +447,7 @@ public class TreeClassifier
 
 	   }
 	br.close();
-	/* BIG TODO PANDA LISTEN : pliss to review my usage of multiple readers. can we do better? */
+	/* PANDA LISTEN : pliss to review my usage of multiple readers. can we do better? */
 
 	/* The following block of code
 	 * Wants to compute Shannon entropies of {b,o,x}Examples
