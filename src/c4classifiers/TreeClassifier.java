@@ -24,7 +24,6 @@ package c4classifiers;
 /* BIG TODO PANDA LISTEN (details inline)
 # | ISSUE | LINE NOS. (fuzzy) |
 ----------------------------------
-1 | Interval.getStart(), Interval.getEnd() inaccessible from here | 50, 60, in and around every LEGALIZER... |
 2 | please review my reuse of reader objects | 230, 365, 440 |
 3 | perhaps need better emptiness check for DataSubset, including case {[r,r)} | 310 |
  */
@@ -36,32 +35,120 @@ import ds.Tree;
 
 public class TreeClassifier
 {
-	static String dataSource = "../data/connect-4-full.data"; // data source
-	static int dataLength = 67557; // number of rows
-	static int classColumn = 42; // 43 columns. 42 attributes and 1 class.
+        // default data source
+	static final String DATA_SOURCE = "../data/connect-4-full.data"; // data source
+	static final int DATA_LENGTH = 67557; // number of rows
+	static final int CLASS_COLUMN = 42; // 43 columns. 42 attributes and 1 class.
+
+        // data source
+        private String dataSource = "";
+        private int dataLength = -1;
+        private int classColumn = -1;
 
 	/* MAIN METHOD
        calls ID3 on the entire dataset and all attributes
 	 */
-	public static void main(String args[]) throws IOException
-	{
+    public static void main(String args[]) throws IOException, ArrayIndexOutOfBoundsException, NumberFormatException
+    {
 		/*
-	  Examples : DataSubset indicator
-	  Target Attribute : Integer index
-	  Attributes : DataSubset indicator
+		 * Examples : DataSubset indicator
+		 * Target Attribute : Integer index
+		 * Attributes : DataSubset indicator
+		*/
+   	        TreeClassifier tc = new TreeClassifier();
+	        /*
+		 * DEFINE DATASET and its properties
+		 * FUNCTIONALITY TO SUPPLY COMMAND-LINE ARGUMENTS
+		 * Limitation : have to give all three
+		 * Hacky workaround : ignores "" and <0 for String, int respectively
+		 * defaults to full data
 		 */
-
+		int temp = 0;
+	        try
+		{
+          		tc.setDataSource(args[0].isEmpty() ? DATA_SOURCE : args[0]);
+			temp = Integer.parseInt(args[1]);
+			tc.setDataLength(temp < 0 ? DATA_LENGTH : temp);
+			temp = Integer.parseInt(args[2]);
+			tc.setClassColumn(temp < 0 ? CLASS_COLUMN : temp);
+		}
+		catch (ArrayIndexOutOfBoundsException e)
+		{
+		        // pass 
+		}
+		catch (NumberFormatException e)
+		{
+		        // pass
+		}
+		finally
+		{
+		    tc.setDataSource(tc.getDataSource().isEmpty() ? DATA_SOURCE : tc.getDataSource());
+		    tc.setDataLength(tc.getDataLength() < 0 ? DATA_LENGTH : tc.getDataLength());
+		    tc.setClassColumn(tc.getClassColumn() < 0 ? CLASS_COLUMN : tc.getClassColumn());
+		}
+		/* END of DATASET DEFINITION
+		 */
+		
 		// initialize to entire dataset and all attributes
-		DataSubset examples = new DataSubset();
-		examples.addRun(new Interval(0, dataLength));
+	        DataSubset examples = new DataSubset();
+		examples.addRun(new Interval(0, tc.getDataLength()));
 		DataSubset attributes = new DataSubset();
-		attributes.addRun(new Interval(0, classColumn));
-		(new TreeClassifier()).ID3(examples, attributes); // initial call to ID3 algorithm
-	}
+		attributes.addRun(new Interval(0, tc.getClassColumn()));
+		tc.ID3(examples, attributes); // initial call to ID3 algorithm
+    }
+    /* FOR EXTERNAL ACCESS / TESTING 
+     * makes validation etc. easy
+     */
+    // public initialization method
+    public static Tree classifyData(String dataFile, int dataRows, int targetColumn) throws IOException
+    {	       
+	    // initialize to given dataset
+	    TreeClassifier tc = new TreeClassifier();
+	    tc.setDataSource(dataFile);
+	    tc.setDataLength(dataRows);
+	    tc.setClassColumn(targetColumn);
 
-	private Tree ID3(DataSubset examples, DataSubset attributes) throws IOException, IndexOutOfBoundsException //target_attribute is the same throughout
+	    // initialize to entire dataset and all attributes
+	    DataSubset examples = new DataSubset();
+	    examples.addRun(new Interval(0, tc.dataLength));
+	    DataSubset attributes = new DataSubset();
+	    attributes.addRun(new Interval(0, tc.classColumn));
+
+	    return tc.ID3(examples, attributes); // returns the entire Tree to the calling method
+    }
+    // getters for public access
+    public String getDataSource()
+    {
+	return this.dataSource;
+    }
+    public int getDataLength()
+    {
+	return this.dataLength;
+    }
+    public int getClassColumn()
+    {
+	return this.classColumn;
+    }
+    // setters for public access
+    public void setDataSource(String dataFile)
+    {
+	    this.dataSource = dataFile;
+    }
+
+    public void setDataLength(int dataRows)
+    {
+	    this.dataLength = dataRows;
+    }
+    
+    public void setClassColumn(int targetColumn)
+    {
+	    this.classColumn = targetColumn;
+    }
+    /* END OF EXTERNAL ACCESS / TESTING CODE */
+
+    private Tree ID3(DataSubset examples, DataSubset attributes) throws IOException, IndexOutOfBoundsException //target_attribute is the same throughout
 	{
-		BufferedReader br = new BufferedReader (new FileReader (dataSource)); // file reader
+		BufferedReader br = new BufferedReader (new FileReader (this.dataSource)); // file reader
 		String line = ""; // temporary variable for reading
 		int rowNumber = -1; // keeps track of which example we are at
 		int exampleIndex = examples.get(0).getStart(); // will run through examples list, starts from first good one
@@ -242,8 +329,8 @@ public class TreeClassifier
 		 * Now we use Shannon entropy to find best classifying attribute
 		 * Then we branch on that attribute and recurse
 		 */
-		int bestAttribute = (new TreeClassifier()).bestAttribute(examples, attributes);// pick best attribute A according to Shannon entropy
-		br = new BufferedReader (new FileReader (dataSource)); // PANDA LISTEN can I do this
+		int bestAttribute = (this.bestAttribute(examples, attributes));// pick best attribute A according to Shannon entropy
+		br = new BufferedReader (new FileReader (this.dataSource)); // PANDA LISTEN can I do this
 		exampleIndex = examples.get(0).getStart(); // reset beginning of subset
 		rowNumber = 0; // reset top of file
 		DataSubset bExamples = new DataSubset();
@@ -304,7 +391,7 @@ public class TreeClassifier
 		 * followed by, recursively, its children
 		 */
 
-		// figure out name of attribute from column number
+		// we could figure out name of attribute from column number
 		/* The Connect4 board is numbered as
 		 * 6 ------
 		 * 5 ------
@@ -330,7 +417,8 @@ public class TreeClassifier
 		 * a'+q is the letter and 
 		 * r is the number (but we write 0 as 6) */
 
-		Tree thisLevel = new Tree(Character.toString((char)(97 + (bestAttribute / 6))) + Integer.toString(bestAttribute % 6 == 0 ? 6 : bestAttribute % 6)); // node with attribute label is the root of subtree at this recursion depth
+		// but we have had an epiphany, and will label just by attribute number		     
+				     Tree thisLevel = new Tree(/*Character.toString((char)(97 + (bestAttribute / 6))) + Integer.toString(bestAttribute % 6 == 0 ? 6 : bestAttribute % 6)*/Integer.toString(bestAttribute)); // node with attribute label is the root of subtree at this recursion depth
 		attributes.removeValue(bestAttribute); // all attributes other than the one we already branched on
 
 		/* PANDA TODO
@@ -346,24 +434,23 @@ public class TreeClassifier
 		 * if not empty, recurses to create non-trivial subtree
 		 */
 
-		TreeClassifier tc = new TreeClassifier(); // your friendly neighbourhood object, only for function calls, jisko bachpan mein bina samjhe banate theyy
 		// branch A="b", board configurationss where position A is left blank
 		if (bExamples.isEmpty() || bExamples.get(0).getStart() == bExamples.get(0).getEnd())
 			thisLevel.addSubtree("b", new Tree(majorityTracker[0] > 0 && majorityTracker[1] > 0? "win" : (majorityTracker[0] < majorityTracker[1] ? "loss" : "draw"))); // single majority node as child
 		else
-			thisLevel.addSubtree("b", tc.ID3(bExamples, attributes));
+			thisLevel.addSubtree("b", this.ID3(bExamples, attributes));
 
 		// branch A="o", board configurationss where position A is taken by player o	
 		if (oExamples.isEmpty() || oExamples.get(0).getStart() == oExamples.get(0).getEnd())
 			thisLevel.addSubtree("o", new Tree(majorityTracker[0] > 0 && majorityTracker[1] > 0? "win" : (majorityTracker[0] < majorityTracker[1] ? "loss" : "draw"))); // single majority node as child
 		else
-			thisLevel.addSubtree("o", tc.ID3(oExamples, attributes));
+			thisLevel.addSubtree("o", this.ID3(oExamples, attributes));
 
 		// branch A="x", board configurationss where position A is taken by player x
 		if (xExamples.isEmpty() || xExamples.get(0).getStart() == xExamples.get(0).getEnd())
 			thisLevel.addSubtree("x", new Tree(majorityTracker[0] > 0 && majorityTracker[1] > 0? "win" : (majorityTracker[0] < majorityTracker[1] ? "loss" : "draw"))); // single majority node as child
 		else
-			thisLevel.addSubtree("x", tc.ID3(xExamples, attributes));
+			thisLevel.addSubtree("x", this.ID3(xExamples, attributes));
 
 		return thisLevel;
 	}
@@ -383,7 +470,7 @@ public class TreeClassifier
 		double currentMinEntropy = 0, tempEntropy = 1;
 		for (int currentAttribute = 0; currentAttribute < classColumn ; currentAttribute++)
 		{
-			br = new BufferedReader (new FileReader (dataSource));
+			br = new BufferedReader (new FileReader (this.dataSource));
 			exampleIndex = examples.get(0).getStart(); //reset top of file
 			bExamples.clear();
 			oExamples.clear();
@@ -473,8 +560,7 @@ public class TreeClassifier
 			 * Maintains minimum such
 			 * over all Attributes in given attribute subset
 			 */
-			TreeClassifier tc = new TreeClassifier(); // friendly neighbourhood object
-			tempEntropy = tc.entropyOf(bExamples) + tc.entropyOf(xExamples) + tc.entropyOf(oExamples);
+			tempEntropy = this.entropyOf(bExamples) + this.entropyOf(xExamples) + this.entropyOf(oExamples);
 			if (tempEntropy < currentMinEntropy)
 			{
 			    currentMinEntropy = tempEntropy;
@@ -503,7 +589,7 @@ public class TreeClassifier
 
 		BufferedReader br = null;
 		try {
-			br = new BufferedReader(new FileReader(dataSource));
+			br = new BufferedReader(new FileReader(this.dataSource));
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

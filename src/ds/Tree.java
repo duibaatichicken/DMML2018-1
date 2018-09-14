@@ -11,20 +11,20 @@ class TreeNode
 {
     // attributes of a Tree Node
     private String label;
-    private HashMap children; // named branches
+    private HashMap<String, Tree> children; // (branch name, pointer root of subtree)
 
     // default constructor
     public TreeNode()
     {
 	this.label = "";
-	this.children = new HashMap();
+	this.children = new HashMap<String,Tree>();
     }
 
     // constructor when label is given
     public TreeNode(String l)
     {
 	this.label = l;
-	this.children = new HashMap();
+	this.children = new HashMap<String,Tree>();
     }
 
     // getters
@@ -32,7 +32,7 @@ class TreeNode
     {
 	return this.label;
     }
-    public HashMap getChildren()
+    public HashMap<String,Tree> getChildren()
     {
 	return this.children;
     }
@@ -42,21 +42,27 @@ class TreeNode
     {
 	this.label = l;
     }
-    public void setChildren(HashMap c)
+    public void setChildren(HashMap<String,Tree> c)
     {
 	this.children = c;
     }
 
-    // check if a node is a leaf
+    // check if a node is a leaf i.e. no children
     public boolean isLeaf()
     {
 	return this.children.isEmpty();
     }
 
-    // add a child given its label
+    // add a child given its branch name
     public void addChild(String branch, String labl)
     {
-	this.children.put(branch, new TreeNode(labl));
+	this.addSubtree(branch, new Tree(labl));
+    }
+
+    // add a subtree given its branch name
+    public void addSubtree(String branch, Tree t)
+    {
+	this.children.put(branch, t);
     }
     
 }
@@ -79,12 +85,26 @@ public class Tree
     {
 	this.root = new TreeNode(l);
     }
-
-    // getter
+    /* GETTERS BEGIN */
+    // root getter
     public TreeNode getRoot()
     {
 	return this.root;
     }
+
+    // subtree getter of specified name. null if no such branch
+    public Tree getSubtree(String branch)
+    {
+	return (this.root.getChildren()).get(branch);
+    }
+
+    // getter of label of root
+    public String getRootLabel()
+    {
+	return this.root.getLabel();
+    }
+    
+    /* GETTERS END */
 
     //setter
     public void setRoot(TreeNode n)
@@ -95,8 +115,21 @@ public class Tree
     // add a subtree at root
     public void addSubtree(String branch, Tree t)
     {
-	this.root.getChildren().put(branch, t.getRoot());
+	this.root.addSubtree(branch, t);
     }
+
+    // check if it is a singleton leaf
+    public boolean isLeaf()
+    {
+	return this.root.isLeaf();
+    }
+
+    //check if it is an empty tree
+    public boolean isEmpty()
+    {
+	return this.root.getLabel().equals(null);
+    }
+
 }
 
     
