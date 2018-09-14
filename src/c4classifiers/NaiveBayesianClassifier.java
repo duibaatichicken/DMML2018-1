@@ -1,6 +1,7 @@
 package c4classifiers;
 
 import java.io.BufferedReader;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.HashMap;
@@ -33,29 +34,38 @@ public class NaiveBayesianClassifier {
 	 *
 	 */
 	private Map<String, int[][]> countsGiven;
-	private Map<String, Integer> resultCountMap;
+	private Map<String, int[]> resultCountMap;
 	private int totalCount;
-	
+
 	private static int ATTRIBUTE_SIZE = 42;
-	private static String TRAINING_DATA_SOURCE = "src/data/connect4-cv_training_data-10-01.data";
-	private static String TESTING_DATA_SOURCE = "src/data/connect4-cv_test_data-10-01.data";
-	
+	private static String[] TRAINING_DATA_SOURCE = {"src/data/connect4-cv_training_data-10-01.data", "src/data/connect4-cv_training_data-10-02.data",
+			"src/data/connect4-cv_training_data-10-03.data", "src/data/connect4-cv_training_data-10-04.data",
+			"src/data/connect4-cv_training_data-10-05.data", "src/data/connect4-cv_training_data-10-06.data",
+			"src/data/connect4-cv_training_data-10-07.data", "src/data/connect4-cv_training_data-10-08.data",
+			"src/data/connect4-cv_training_data-10-09.data", "src/data/connect4-cv_training_data-10-10.data"};
+
+	private static String[] TESTING_DATA_SOURCE = {"src/data/connect4-cv_test_data-10-01.data", "src/data/connect4-cv_test_data-10-02.data",
+			"src/data/connect4-cv_test_data-10-03.data", "src/data/connect4-cv_test_data-10-04.data",
+			"src/data/connect4-cv_test_data-10-05.data", "src/data/connect4-cv_test_data-10-06.data",
+			"src/data/connect4-cv_test_data-10-07.data", "src/data/connect4-cv_test_data-10-08.data",
+			"src/data/connect4-cv_test_data-10-09.data", "src/data/connect4-cv_test_data-10-10.data"};
+
 	/************************* *************************/
-	
+
 	/**
 	 * Constructor
 	 * @throws IOException 
 	 */
-	public NaiveBayesianClassifier() throws IOException {
-		
+	public NaiveBayesianClassifier(int dataset) throws IOException {
+
 		this.countsGiven = new HashMap<String, int[][]>();
 		countsGiven.put("win", new int[ATTRIBUTE_SIZE][3]);
 		countsGiven.put("draw", new int[ATTRIBUTE_SIZE][3]);
 		countsGiven.put("loss", new int[ATTRIBUTE_SIZE][3]);
-		
+
 		// Create instances of probability arrays.
 		this.totalCount = 0;
-		
+
 		// Initialise all probabilities to zero.
 		for(int i=0;i<ATTRIBUTE_SIZE;++i) {
 			for(int j=0;j<3;++j) {
@@ -64,32 +74,38 @@ public class NaiveBayesianClassifier {
 				this.countsGiven.get("loss")[i][j] = 0;
 			}
 		}
-		
+
 		// Create instance of result probability array.
-		this.resultCountMap = new HashMap<String, Integer>();
-		resultCountMap.put("win", 0);
-		resultCountMap.put("draw", 0);
-		resultCountMap.put("loss", 0);
-		
+		this.resultCountMap = new HashMap<String, int[]>();
+		resultCountMap.put("win", new int[1]);
+		resultCountMap.get("win")[0] = 0;
+		resultCountMap.put("draw", new int[1]);
+		resultCountMap.get("draw")[0] = 0;
+		resultCountMap.put("loss", new int[1]);
+		resultCountMap.get("loss")[0] = 0;
+
 		// Populate probability arrays by reading data source.
-		buildCountsArrays();
+		buildCountsArrays(dataset);
+		
+		// Run the cross-validator.
+		String result = crossValidator(dataset);
+		System.out.println(result);
 	}
-	
+
 	/************************* *************************/
-	
+
 	/**
 	 * @throws IOException 
 	 * @description Compiles a list of probabilities based on
 	 * reading the data source file.
 	 */
-	private void buildCountsArrays() throws IOException {
-		BufferedReader br = new BufferedReader(new FileReader(TRAINING_DATA_SOURCE));
+	private void buildCountsArrays(int dataset) throws IOException {
+		BufferedReader br = new BufferedReader(new FileReader(TRAINING_DATA_SOURCE[dataset]));
 		String currLine = "";
 		while((currLine = br.readLine()) != null) {
 			String[] tmpArray = currLine.split(",");
-			int lineSize = tmpArray.length;
-			String result = tmpArray[lineSize-1]; // win, draw, loss
-			for(int i=0;i<lineSize-1;++i) {
+			String result = tmpArray[ATTRIBUTE_SIZE]; // "win", "draw", "loss"
+			for(int i=0;i<ATTRIBUTE_SIZE;++i) {
 				if(tmpArray[i].equals("b")) {
 					countsGiven.get(result)[i][0]++;
 				} else if(tmpArray[i].equals("o")) {
@@ -100,14 +116,15 @@ public class NaiveBayesianClassifier {
 					throw(new RuntimeException("Invalid data!"));
 				}
 			}
-			resultCountMap.put(result, resultCountMap.get(result)+1);
+			resultCountMap.get(result)[0]++;
 		}
 		br.close();
-		totalCount = resultCountMap.get("win") + resultCountMap.get("draw") + resultCountMap.get("loss");
+		totalCount = resultCountMap.get("win")[0] + resultCountMap.get("draw")[0] + resultCountMap.get("loss")[0];
+		//		System.out.println(totalCount);
 	}
-	
+
 	/************************* *************************/
-	
+
 	/**
 	 * @description Returns the specified probability. For explanation
 	 * on convention of values, see comment before the definition of
@@ -120,13 +137,13 @@ public class NaiveBayesianClassifier {
 			if(value < 0 || value > 2) {
 				throw(new RuntimeException("Value index out of bounds!"));
 			} else {
-				return (double)countsGiven.get(given)[attribute][value] / (double) resultCountMap.get(given);
+				return ((double)countsGiven.get(given)[attribute][value] / (double)resultCountMap.get(given)[0]);
 			}
 		}
 	}
-	
+
 	/************************* *************************/
-	
+
 	/**
 	 * @description Classify a line of input based on the Bayesian
 	 * probabilities built earlier. The line is assumed to be formatted
@@ -134,10 +151,9 @@ public class NaiveBayesianClassifier {
 	 */
 	public String classify(String line) {
 		String[] tmpArray = line.split(",");
-		int lineSize = tmpArray.length;
 		double[] prob = new double[3];
 		prob[0] = 1; prob[1] = 1; prob[2] = 1;
-		for(int i=0;i<lineSize-1;++i) {
+		for(int i=0;i<ATTRIBUTE_SIZE;++i) {
 			if(tmpArray[i].equals("b")) {
 				prob[0] *= getProbability(i, 0, "win");
 				prob[1] *= getProbability(i, 0, "draw");
@@ -154,19 +170,19 @@ public class NaiveBayesianClassifier {
 				throw(new RuntimeException("Invalid data line!"));
 			}
 		}
-		prob[0] *= ((double)resultCountMap.get("win") / (double) totalCount);
-		prob[1] *= ((double)resultCountMap.get("draw") / (double) totalCount);
-		prob[2] *= ((double)resultCountMap.get("loss") / (double) totalCount);
-		
+		prob[0] *= ((double)resultCountMap.get("win")[0] / (double) totalCount);
+		prob[1] *= ((double)resultCountMap.get("draw")[0] / (double) totalCount);
+		prob[2] *= ((double)resultCountMap.get("loss")[0] / (double) totalCount);
+
 		String ans = "";
-		if(prob[0] >= prob[1]) {
-			if(prob[2] >= prob[0]) {
+		if(prob[0] > prob[1]) {
+			if(prob[2] > prob[0]) {
 				ans = "loss";
 			} else {
 				ans = "win";
 			}
-		} else { // prob[0] < prob[1]
-			if(prob[2] >= prob[1]) {
+		} else { // prob[0] <= prob[1]
+			if(prob[2] > prob[1]) {
 				ans = "loss";
 			} else {
 				ans = "draw";
@@ -174,15 +190,52 @@ public class NaiveBayesianClassifier {
 		}
 		return ans;
 	}
-	
+
 	/************************* *************************/
-	
+
+	/**
+	 * @throws IOException 
+	 * @description Validates the model built from training
+	 * data on the corresponding testing data.
+	 */
+	public String crossValidator(int dataset) throws IOException {
+		String ans = "";
+		int correctCount = 0, totalCount = 0;
+
+		BufferedReader br = new BufferedReader(new FileReader(TESTING_DATA_SOURCE[dataset]));
+		String currLine = "";
+		while((currLine = br.readLine()) != null) {
+			String predictedResult = classify(currLine);
+			String actualResult = "";
+			if(currLine.endsWith("win")) {
+				actualResult = "win";
+			} else if(currLine.endsWith("draw")) {
+				actualResult = "draw";
+			} else if(currLine.endsWith("loss")) {
+				actualResult = "loss";
+			} else {
+				throw(new RuntimeException("Invalid data!"));
+			}
+			if(actualResult.equals(predictedResult)) {
+				correctCount++;
+			}
+			totalCount++;
+		}
+		br.close();
+		ans = String.valueOf(correctCount) + " / " + String.valueOf(totalCount);
+		return ans;
+	}
+
+	/************************* *************************/
+
 	/**
 	 * @throws IOException 
 	 * @description Main function for local testing.
 	 */
 	@SuppressWarnings("unused")
 	public static void main(String[] args) throws IOException {
-		NaiveBayesianClassifier nbc = new NaiveBayesianClassifier();
+		for(int i=0;i<10;++i) {
+			NaiveBayesianClassifier nbc = new NaiveBayesianClassifier(i);
+		}
 	}
 }
