@@ -66,7 +66,7 @@ public class TreeClassifier
 		int rowNumber = -1; // keeps track of which example we are at
 		int exampleIndex = examples.get(0).getStart(); // will run through examples list, starts from first good one
 		int attributeIndex = attributes.get(0).getStart(); // will run through attribute list, starts from first good one
-		String[] row = new String[classColumn+1]; // 43 columns in each row of data
+		String currClass = ""; // stores current class
 
 		/*----------------------------------------------------------------------*/
 		/* CASE 1 : CLASS-PURE
@@ -115,30 +115,36 @@ public class TreeClassifier
 			/*If we reached here
 			 *then this row is in the desired subset
 			 */
-			row = line.split(",");
 
 			/* The following block code
 			 * updates the majorityTracker
 			 * according to the classes in current subset
 			 * because we need it in Case 2 where we don't reread everything
 			 */
-			if (row[classColumn].equals("win"))
+			if (line.endsWith("win"))
 			{
+			        currClass = "win";
 				majorityTracker[0]++;
 				majorityTracker[1]++;
 			}
-			else if (row[classColumn].equals("loss"))
-				majorityTracker[0]--;
+			else if (line.endsWith("loss"))
+			{
+			        currClass = "loss";
+			        majorityTracker[0]--;
+			}
 			else
+			{
+			        currClass = "draw";
 				majorityTracker[1]--;
-
+			}
+			
 			/* The following block of code
 			 * compares the latest seen class with the immediate previous one
 			 * if there are different classes, there are consecutive rows with different classes
 			 * we detect the first such.
 			 */
 			targetTracker[0] = targetTracker[1];
-			targetTracker[1] = row[classColumn];
+			targetTracker[1] = currClass;
 			if (targetTracker[0] != targetTracker[1]) // then we know this base case does not hold
 				break; // so we move on to other cases
 
@@ -205,15 +211,22 @@ public class TreeClassifier
 			 * according to the classes in current subset
 			 * because we need it in Case 2 where we don't reread everything
 			 */
-			if (row[classColumn].equals("win"))
+		        if (line.endsWith("win"))
 			{
+			        currClass = "win";
 				majorityTracker[0]++;
 				majorityTracker[1]++;
 			}
-			else if (row[classColumn].equals("loss"))
-				majorityTracker[0]--;
+			else if (line.endsWith("loss"))
+			{
+			        currClass = "loss";
+			        majorityTracker[0]--;
+			}
 			else
+			{
+			        currClass = "draw";
 				majorityTracker[1]--;
+			}
 		}                     	     
 		if (attributes.isEmpty()) // if there are no attributes
 			return (new Tree(majorityTracker[0] > 0 && majorityTracker[1] > 0? "win" : (majorityTracker[0] < majorityTracker[1] ? "loss" : "draw"))); //single node with majority
@@ -236,7 +249,8 @@ public class TreeClassifier
 		DataSubset bExamples = new DataSubset();
 		DataSubset oExamples = new DataSubset();
 		DataSubset xExamples = new DataSubset(); // these 3 will hold A=v_i subsets
-
+		String[] row = new String[classColumn+1];
+		
 		/* The following while loop
 		 * reads the data and creates Example[A=v_i] subsets according to best Attribute A
 		 */
@@ -273,7 +287,7 @@ public class TreeClassifier
 					continue; //discard
 			}
 			/* END OF LEGALIZER */
-
+			
 			/*The following block of code
 			 *builds Examples(v_i)
 			 */
@@ -316,7 +330,7 @@ public class TreeClassifier
 		 * a'+q is the letter and 
 		 * r is the number (but we write 0 as 6) */
 
-		Tree thisLevel = new Tree(Integer.toString(97 + (bestAttribute / 6)) + (bestAttribute % 6 == 0 ? 6 : bestAttribute % 6)); // node with attribute label is the root of subtree at this recursion depth
+		Tree thisLevel = new Tree(Character.toString((char)(97 + (bestAttribute / 6))) + Integer.toString(bestAttribute % 6 == 0 ? 6 : bestAttribute % 6)); // node with attribute label is the root of subtree at this recursion depth
 		attributes.removeValue(bestAttribute); // all attributes other than the one we already branched on
 
 		/* PANDA TODO
@@ -356,7 +370,7 @@ public class TreeClassifier
 
 	private int bestAttribute(DataSubset examples, DataSubset attributes) throws IOException, IndexOutOfBoundsException
 	{
-		String[] row = new String[classColumn+1]; // I row of data
+		String[] row = new String[classColumn+1]; // 1 row of data
 		BufferedReader br;
 		String line = "";
 		int attributeIndex = attributes.get(0).getStart(); // runs over attributes, starts at first good one
@@ -455,19 +469,19 @@ public class TreeClassifier
 			/* PANDA LISTEN : pliss to review my usage of multiple readers. can we do better? */
 
 			/* The following block of code
-			 * Wants to compute Shannon entropies of {b,o,x}Examples
-			 * but cannot
-			 * because we have not implemented Shannon yet
-			 * The following block of code
-			 * is tired
-			 * yawn
-			 * that's called a transferred epithet
-			 * #EnglishTA
+			 * Computes Shannon entropies of {b,o,x}Examples
+			 * Maintains minimum such
+			 * over all Attributes in given attribute subset
 			 */
-			// tempShannon = Shannon(b) + Shannon(o) + Shannon (x)
-			// if tempShannon < Shannon, Shannon = tempShannon; minAttribute = currentAttribute; 
+			TreeClassifier tc = new TreeClassifier(); // friendly neighbourhood object
+			tempEntropy = tc.entropyOf(bExamples) + tc.entropyOf(xExamples) + tc.entropyOf(oExamples);
+			if (tempEntropy < currentMinEntropy)
+			{
+			    currentMinEntropy = tempEntropy;
+			    minAttribute = currentAttribute;
+			}
 		}			      
-		return minAttribute;
+		return minAttribute; // best attribute to branch on
 	}
 
 	/************************* *************************/
