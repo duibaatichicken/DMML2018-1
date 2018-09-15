@@ -27,20 +27,8 @@ public class crossValidator10Fold
      */
     public static void main(String args[]) throws IOException, ArrayIndexOutOfBoundsException
     {
-	String classifier = "";
-	crossValidator10Fold v = new crossValidator10Fold(); 
-	try
-	{
-	    classifier = args[0];
-	}
-	catch (ArrayIndexOutOfBoundsException e)
-	{
-	    // pass
-	}
-	if (classifier.isEmpty())
-	{
-	    System.out.println(v.crossValidate10Fold("tree"));
-	}
+	crossValidator10Fold v = new crossValidator10Fold();
+	System.out.println(v.crossValidate10Fold("tree"));
     }
     
     /*----------------------------------------------------------*/
@@ -68,8 +56,8 @@ public class crossValidator10Fold
 
 
 	// find correct data files
-	String trainingData = "connect4-cv_training_data-10-" + (testSection == 10 ? "" : "0") + Integer.toString(testSection) + ".data";
-	String testData = "connect4-cv_test_data-10-" + (testSection == 10 ? "" : "0") + Integer.toString(testSection) + ".data";
+	String trainingData = "data/connect4-cv_training_data-10-" + (testSection == 10 ? "" : "0") + Integer.toString(testSection) + ".data";
+	String testData = "data/connect4-cv_test_data-10-" + (testSection == 10 ? "" : "0") + Integer.toString(testSection) + ".data";
 
 	// validate the correct classifier type
 	if (classifier == "tree")
@@ -96,7 +84,7 @@ public class crossValidator10Fold
      */
     private Tree trainTree(String trainingData) throws IOException
     {
-	return TreeClassifier.classifyData(trainingData, 6762, 42);
+	return TreeClassifier.classifyData(trainingData, (67557-6755), 42);
     }
 
     /*----------------------------------------------------------*/
