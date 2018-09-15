@@ -105,13 +105,19 @@ public class Tree
     }
     
     /* GETTERS END */
-
-    //setter
+    /*SETTERS BEGIN*/
+    //root setter
     public void setRoot(TreeNode n)
     {
 	this.root = n;
     }
 
+    // setter of root label
+    public void setRootLabel(String l)
+    {
+	return this.root.setLabel(l);
+    }
+    /*SETTERS END*/
     // add a subtree at root
     public void addSubtree(String branch, Tree t)
     {

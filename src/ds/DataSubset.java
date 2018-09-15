@@ -189,6 +189,18 @@ public class DataSubset extends LinkedList<Interval> {
 			}
 		}
 	}
+
+        /************************* *************************/
+	
+	/**
+	 * @description Finds the given value in the subsets
+	 */
+        /*public DataSubset findValue(int toFind){
+	        boolean toLowerBound = true;
+		boolean toUpperBound = false;
+		while (toLowerBound){
+		    // TODO : Write code for finding a value.        
+		    }*/
 	
 	/************************* *************************/
 	

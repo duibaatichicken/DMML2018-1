@@ -28,603 +28,353 @@ package c4classifiers;
 3 | perhaps need better emptiness check for DataSubset, including case {[r,r)} | 310 |
  */
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.FileReader;
 import ds.DataSubset;
 import ds.Interval;
 import ds.Tree;
+import java.util.Iterator;
+
+/* A classifier for connect4 dataset
+ * using ID3 decision tree algorithm
+ */
 
 public class TreeClassifier
 {
-        // default data source
-	static final String DATA_SOURCE = "../data/connect-4-full.data"; // data source
-	static final int DATA_LENGTH = 67557; // number of rows
-	static final int CLASS_COLUMN = 42; // 43 columns. 42 attributes and 1 class.
-
-        // data source
-        private String dataSource = "";
-        private int dataLength = -1;
-        private int classColumn = -1;
-
-	/* MAIN METHOD
-       calls ID3 on the entire dataset and all attributes
-	 */
-    public static void main(String args[]) throws IOException, ArrayIndexOutOfBoundsException, NumberFormatException
-    {
-		/*
-		 * Examples : DataSubset indicator
-		 * Target Attribute : Integer index
-		 * Attributes : DataSubset indicator
-		*/
-   	        TreeClassifier tc = new TreeClassifier();
-	        /*
-		 * DEFINE DATASET and its properties
-		 * FUNCTIONALITY TO SUPPLY COMMAND-LINE ARGUMENTS
-		 * Limitation : have to give all three
-		 * Hacky workaround : ignores "" and <0 for String, int respectively
-		 * defaults to full data
-		 */
-		int temp = 0;
-	        try
-		{
-          		tc.setDataSource(args[0].isEmpty() ? DATA_SOURCE : args[0]);
-			temp = Integer.parseInt(args[1]);
-			tc.setDataLength(temp < 0 ? DATA_LENGTH : temp);
-			temp = Integer.parseInt(args[2]);
-			tc.setClassColumn(temp < 0 ? CLASS_COLUMN : temp);
-		}
-		catch (ArrayIndexOutOfBoundsException e)
-		{
-		        // pass 
-		}
-		catch (NumberFormatException e)
-		{
-		        // pass
-		}
-		finally
-		{
-		    tc.setDataSource(tc.getDataSource().isEmpty() ? DATA_SOURCE : tc.getDataSource());
-		    tc.setDataLength(tc.getDataLength() < 0 ? DATA_LENGTH : tc.getDataLength());
-		    tc.setClassColumn(tc.getClassColumn() < 0 ? CLASS_COLUMN : tc.getClassColumn());
-		}
-		/* END of DATASET DEFINITION
-		 */
-		
-		// initialize to entire dataset and all attributes
-	        DataSubset examples = new DataSubset();
-		examples.addRun(new Interval(0, tc.getDataLength()));
-		DataSubset attributes = new DataSubset();
-		attributes.addRun(new Interval(0, tc.getClassColumn()));
-		tc.ID3(examples, attributes); // initial call to ID3 algorithm
-    }
-    /* FOR EXTERNAL ACCESS / TESTING 
-     * makes validation etc. easy
+    private DataSubset[][] subsetsByAttribute;
+    /**
+     * subsetsByAttribute :
+     * 42 x 3 array of DataSubsets
+     * 42 attributes x 3 possible values
+     * convention for values :
+     * 0 - b
+     * 1 - o
+     * 2 - x
+     * subsetsByAttribute[i][j] is the DataSubset such that attribute_i is identically j
+     * EXAMPLE
+     * subsetsByAttribute[17][1] is subset of data where position 17 was taken by player o
      */
-    // public initialization method
-    public static Tree classifyData(String dataFile, int dataRows, int targetColumn) throws IOException
-    {	       
-	    // initialize to given dataset
-	    TreeClassifier tc = new TreeClassifier();
-	    tc.setDataSource(dataFile);
-	    tc.setDataLength(dataRows);
-	    tc.setClassColumn(targetColumn);
+    private DataSubset[] subsetsByClass;
+    /**
+     * subsetsByClass :
+     * 3 array pf DataSubsets
+     * 3 classes
+     * convention for classes
+     * 0 - draw
+     * 1 - win
+     * 2 - loss
+     */
+    private Tree classifierTree;
 
-	    // initialize to entire dataset and all attributes
-	    DataSubset examples = new DataSubset();
-	    examples.addRun(new Interval(0, tc.dataLength));
-	    DataSubset attributes = new DataSubset();
-	    attributes.addRun(new Interval(0, tc.classColumn));
+    private static int splitNumber = i;
+    if (splitNumber < 1 
+    String s = i == 10 ? 
+    private static String TRAINING_DATA_SOURCE = "src/data/connect-4-cv_training_data-10-01.data";
+    private static String TESTING_DATA_SOURCE = "src/data/connect-4-cv_test_data-10-01.data"; 
+    private static int ATTRIBUTE_SIZE = 42;
+    private static int TRAINING_DATA_LENGTH = 6755;
+    
+    /************************** ***************************/
+    
+    /**
+     * Constructor
+     */
+    public TreeClassifier()
+    {
+	
+	this.subsetsByAttribute = new subsetsByAttribute[ATTRIBUTE_SIZE][3];
+	this.subsetsByClass = new subsetsByClass[3];
 
-	    return tc.ID3(examples, attributes); // returns the entire Tree to the calling method
-    }
-    // getters for public access
-    public String getDataSource()
-    {
-	return this.dataSource;
-    }
-    public int getDataLength()
-    {
-	return this.dataLength;
-    }
-    public int getClassColumn()
-    {
-	return this.classColumn;
-    }
-    // setters for public access
-    public void setDataSource(String dataFile)
-    {
-	    this.dataSource = dataFile;
-    }
-
-    public void setDataLength(int dataRows)
-    {
-	    this.dataLength = dataRows;
+	// initializes each element of subsetsByAttribute to an empty DataSubset
+	for (int i = 0 ; i < ATTRIBUTE_SIZE ; i++)
+	{
+	    for (int j = 0 ; j < 3 ; j++)
+	    {
+		this.subsetsByAttribute[i][j] = new DataSubset();
+	    }
+	}
+	
+	this.classifierTree = new Tree();
     }
     
-    public void setClassColumn(int targetColumn)
+    /************************* *************************/   
+    
+    /**
+     * @throws IOException
+     * @description Computes two arrays
+     * subsetsByAttribute indexed by Attributes(42) x Positions(3)
+     * Such that the [i][j]th element is the DataSubset [A_i = p_j]
+     * subsetsByClass indexed by Outcomes(3)
+     * Such that the [i]th element is the DataSubset [Class = c_i]
+     */
+    private void computeSubsets() throws IOException
     {
-	    this.classColumn = targetColumn;
+	BufferedReader br = new BufferedReader (new FileReader (TRAINING_DATA_SOURCE));
+	String currLine = "";
+	int lineCount = 0;
+	String[] row = new String[ATTRIBUTE_SIZE];
+	while((currLine = br.readLine()) != null)
+	{
+	    row = currLine.split(",");
+	    
+	    if (row[ATTRIBUTE_SIZE].equals("draw"))
+		subsetsByClass[0].addValue(lineCount);
+	    else if (row[ATTRIBUTE_SIZE].equals("win"))
+		subsetsByClass[1].addValue(lineCount);
+	    else if (row[ATTRIBUTE_SIZE].equals("loss"))
+		subsetsByClass[2].addValue(lineCount);
+	    for (int i = 1 ; i < ATTRIBUTE_SIZE ; i++)
+	    {
+		if (row[i].equals("b"))
+		    subsetsByAttribute[i][0].addValue(lineCount++);
+		else if (row[i].equals("o"))
+		    subsetsByAttribute[i][1].addValue(lineCount++);
+		else if (row[i].equals("W"))
+		    subsetsByAttribute[i][2].addValue(lineCount++);
+		else
+		    throw(new RunTimeException("Invalid data!"));
+	    }
+	}
     }
-    /* END OF EXTERNAL ACCESS / TESTING CODE */
 
-    private Tree ID3(DataSubset examples, DataSubset attributes) throws IOException, IndexOutOfBoundsException //target_attribute is the same throughout
-	{
-		BufferedReader br = new BufferedReader (new FileReader (this.dataSource)); // file reader
-		String line = ""; // temporary variable for reading
-		int rowNumber = -1; // keeps track of which example we are at
-		int exampleIndex = examples.get(0).getStart(); // will run through examples list, starts from first good one
-		int attributeIndex = attributes.get(0).getStart(); // will run through attribute list, starts from first good one
-		String currClass = ""; // stores current class
+    /************************* *************************/   
+    
+    /**
+     * @description Builds ID3 decision tree based on 
+     * subsets constructed from data
+     * takes as input the rows and columns currently under consideration
+     */
+    public Tree makeTree(DataSubset[][] examples, DataSubset[] attributes)
+    {
+	Tree decisionTree = new Tree(); // decision tree for this level of recursion
 
-		/*----------------------------------------------------------------------*/
-		/* CASE 1 : CLASS-PURE
-		 * ALL WINS, or
-		 * ALL LOSSES, or
-		 * ALL DRAWS
-		 * We will return
-		 * A lonely root labelled by the pure class
-		 */
-		String targetTracker[] = {"",""}; // tracks if examples are all of same class
-		int majorityTracker[] = {0,0}; // tracks majority class in given example, stores {win-loss, win-draw}
-		while((line = br.readLine()) != null && exampleIndex < examples.size())
-		{
-			rowNumber++;
-			/* THE LEGALIZER
-			 * The following block of code finds if the current row is included in the subset
-			 * moves the exampleIndex until either examples end
-			 * or we exceed the row number
-			 * hence confirming where the row number lies w.r.t intervals
-			 */
-			if (rowNumber < examples.get(exampleIndex).getStart())
-			{
-				continue; // we traverse from the left, so rowNumber >= examples[exampleIndex-1].getStart() is ensured
-				// hence we can discard
-			}
-			else
-			{
-				try
-				{
-					while (rowNumber >= examples.get(exampleIndex++).getEnd()); // look in the next index and so on
-				}
-				catch (IndexOutOfBoundsException e) // no more examples
-				{
-					line = null; // use this as a flag for all breaks other than moving to other cases
-					break;
-				}
-				/* At this point
-				 * examples[exampleIndex-1].getEnd() <= rowNumber < examples[exampleIndex].getEnd()
-				 * so we can discard if rowNumber < examples[exampleIndex].getStart()
-				 */
-				if (rowNumber < examples.get(exampleIndex).getStart())
-					continue; //discard
-			}
-			/* END OF LEGALIZER */
-
-			/*If we reached here
-			 *then this row is in the desired subset
-			 */
-
-			/* The following block code
-			 * updates the majorityTracker
-			 * according to the classes in current subset
-			 * because we need it in Case 2 where we don't reread everything
-			 */
-			if (line.endsWith("win"))
-			{
-			        currClass = "win";
-				majorityTracker[0]++;
-				majorityTracker[1]++;
-			}
-			else if (line.endsWith("loss"))
-			{
-			        currClass = "loss";
-			        majorityTracker[0]--;
-			}
-			else
-			{
-			        currClass = "draw";
-				majorityTracker[1]--;
-			}
-			
-			/* The following block of code
-			 * compares the latest seen class with the immediate previous one
-			 * if there are different classes, there are consecutive rows with different classes
-			 * we detect the first such.
-			 */
-			targetTracker[0] = targetTracker[1];
-			targetTracker[1] = currClass;
-			if (targetTracker[0] != targetTracker[1]) // then we know this base case does not hold
-				break; // so we move on to other cases
-
-			/* if the loop above did not detect a change of class
-			 * we can say there is just one class in the examples
-			 */
-		}
-		// the pure class case
-		if (line == null) //so I know it didn't break due to class change
-			return (new Tree(targetTracker[1])); // lonely root with label of class
-
-		/* END OF CASE 1 */
-
-		/*----------------------------------------------------------------------*/
-
-		/* CASE 2 : 
-		 * EMPTY ATTRIBUTE LIST 
-		 * We will return
-		 * A lonely root with majority of the class
-		 */
-
-		/* The following while loop
-		 * finishes reading the data and if it wasn't done already
-		 * and computes the overall majority
-		 * the majority computation might be unnecessary in some subcases of case 2
-		 * but might be requried later
-		 */
-		while((line = br.readLine()) != null && exampleIndex < examples.size())
-		{
-			rowNumber++;
-			/* THE LEGALIZER 2.0 (it's the same, really)
-			 * The following block of code finds if the current row is included in the subset
-			 * moves the exampleIndex until either examples end
-			 * or we exceed the row number
-			 * hence confirming where the row number lies w.r.t intervals
-			 */
-			if (rowNumber < examples.get(exampleIndex).getStart())
-			{
-				continue; // we traverse from the left, so rowNumber >= examples[exampleIndex-1].getStart() is ensured
-				// hence we can discard
-			}
-			else
-			{
-				try
-				{
-					while (rowNumber >= examples.get(exampleIndex++).getEnd()); // look in the next index and so on
-				}
-				catch (IndexOutOfBoundsException e) // no more examples
-				{
-					line = null; // use this as a flag for all breaks other than moving to other cases
-					break;
-				}
-				/* At this point (recall we increment within while loop)
-				 * examples[exampleIndex-2].getEnd() <= rowNumber < examples[exampleIndex-1].getEnd()
-				 * so we can discard if rowNumber < examples[exampleIndex-1].getStart()
-				 */
-				if (rowNumber < examples.get(exampleIndex-1).getStart())
-					continue; //discard
-			}
-			/* END OF LEGALIZER */
-
-			/* The following block code
-			 * updates the majorityTracker
-			 * according to the classes in current subset
-			 * because we need it in Case 2 where we don't reread everything
-			 */
-		        if (line.endsWith("win"))
-			{
-			        currClass = "win";
-				majorityTracker[0]++;
-				majorityTracker[1]++;
-			}
-			else if (line.endsWith("loss"))
-			{
-			        currClass = "loss";
-			        majorityTracker[0]--;
-			}
-			else
-			{
-			        currClass = "draw";
-				majorityTracker[1]--;
-			}
-		}                     	     
-		if (attributes.isEmpty()) // if there are no attributes
-			return (new Tree(majorityTracker[0] > 0 && majorityTracker[1] > 0? "win" : (majorityTracker[0] < majorityTracker[1] ? "loss" : "draw"))); //single node with majority
-
-		br.close();
-
-		/* END OF CASE 2 */
-
-		/*----------------------------------------------------------------------*/        
-
-		/* CASE 3 : NONE OF THE BASE CASES CAME UP
-		 * This is where it gets real
-		 * Now we use Shannon entropy to find best classifying attribute
-		 * Then we branch on that attribute and recurse
-		 */
-		int bestAttribute = (this.bestAttribute(examples, attributes));// pick best attribute A according to Shannon entropy
-		br = new BufferedReader (new FileReader (this.dataSource)); // PANDA LISTEN can I do this
-		exampleIndex = examples.get(0).getStart(); // reset beginning of subset
-		rowNumber = 0; // reset top of file
-		DataSubset bExamples = new DataSubset();
-		DataSubset oExamples = new DataSubset();
-		DataSubset xExamples = new DataSubset(); // these 3 will hold A=v_i subsets
-		String[] row = new String[classColumn+1];
-		
-		/* The following while loop
-		 * reads the data and creates Example[A=v_i] subsets according to best Attribute A
-		 */
-		while((line = br.readLine()) != null && exampleIndex < examples.size())
-		{
-			rowNumber++;
-			/* THE LEGALIZER is back yo
-			 * The following block of code finds if the current row is included in the subset
-			 * moves the exampleIndex until either examples end
-			 * or we exceed the row number
-			 * hence confirming where the row number lies w.r.t intervals
-			 */
-			if (rowNumber < examples.get(exampleIndex).getStart())
-			{
-				continue; // we traverse from the left, so rowNumber >= examples[exampleIndex-1].getStart() is ensured
-				// hence we can discard
-			}
-			else
-			{
-				try
-				{
-					while (rowNumber >= examples.get(exampleIndex++).getEnd()); // look in the next index and so on
-				}
-				catch (IndexOutOfBoundsException e) // no more examples
-				{
-					line = null; // use this as a flag for all breaks other than moving to other cases
-					break;
-				}
-				/* At this point (recall we increment within while loop)
-				 * examples[exampleIndex-2].getEnd() <= rowNumber < examples[exampleIndex-1].getEnd()
-				 * so we can discard if rowNumber < examples[exampleIndex-1].getStart()
-				 */
-				if (rowNumber < examples.get(exampleIndex-1).getStart())
-					continue; //discard
-			}
-			/* END OF LEGALIZER */
-			
-			/*The following block of code
-			 *builds Examples(v_i)
-			 */
-			row = line.split(",");
-			if (row[bestAttribute].equals("b"))
-				bExamples.addValue(bestAttribute);    // add current example to bExamples
-			else if (row[bestAttribute].equals("o"))
-				oExamples.addValue(bestAttribute); // and so on
-			else
-				xExamples.addValue(bestAttribute);
-
-		}
-		/* now we shall build the root node
-		 * followed by, recursively, its children
-		 */
-
-		// we could figure out name of attribute from column number
-		/* The Connect4 board is numbered as
-		 * 6 ------
-		 * 5 ------
-		 * 4 ------
-		 * 3 ------
-		 * 2 ------
-		 * 1 ------
-		 *   abcdef
-		 */
-		/* Attributes appear in dataset as
-		 * 1. a1
-		 * 2. a2
-		 * ...
-		 * 6. a6
-		 * 7. b1
-		 * ...
-		 * 12. b6
-		 * ...
-		 * ...
-		 * 42. g6
-		 */
-		/* So where attribute = 6q + r, r < 6, '
-		 * a'+q is the letter and 
-		 * r is the number (but we write 0 as 6) */
-
-		// but we have had an epiphany, and will label just by attribute number		     
-				     Tree thisLevel = new Tree(/*Character.toString((char)(97 + (bestAttribute / 6))) + Integer.toString(bestAttribute % 6 == 0 ? 6 : bestAttribute % 6)*/Integer.toString(bestAttribute)); // node with attribute label is the root of subtree at this recursion depth
-		attributes.removeValue(bestAttribute); // all attributes other than the one we already branched on
-
-		/* PANDA TODO
-		 * how does emptiness work in DS?
-		 * currently have accounted for both possibilities here itself
-		 * perhaps you should define something like trueEmpty in DS
-		 */
-
-		/* PRAISE THE RECURSION
-		 * The following block of code
-		 * checks if each Examples(v_i) is empty or not
-		 * if empty, creates single majority node for the corresponding child
-		 * if not empty, recurses to create non-trivial subtree
-		 */
-
-		// branch A="b", board configurationss where position A is left blank
-		if (bExamples.isEmpty() || bExamples.get(0).getStart() == bExamples.get(0).getEnd())
-			thisLevel.addSubtree("b", new Tree(majorityTracker[0] > 0 && majorityTracker[1] > 0? "win" : (majorityTracker[0] < majorityTracker[1] ? "loss" : "draw"))); // single majority node as child
-		else
-			thisLevel.addSubtree("b", this.ID3(bExamples, attributes));
-
-		// branch A="o", board configurationss where position A is taken by player o	
-		if (oExamples.isEmpty() || oExamples.get(0).getStart() == oExamples.get(0).getEnd())
-			thisLevel.addSubtree("o", new Tree(majorityTracker[0] > 0 && majorityTracker[1] > 0? "win" : (majorityTracker[0] < majorityTracker[1] ? "loss" : "draw"))); // single majority node as child
-		else
-			thisLevel.addSubtree("o", this.ID3(oExamples, attributes));
-
-		// branch A="x", board configurationss where position A is taken by player x
-		if (xExamples.isEmpty() || xExamples.get(0).getStart() == xExamples.get(0).getEnd())
-			thisLevel.addSubtree("x", new Tree(majorityTracker[0] > 0 && majorityTracker[1] > 0? "win" : (majorityTracker[0] < majorityTracker[1] ? "loss" : "draw"))); // single majority node as child
-		else
-			thisLevel.addSubtree("x", this.ID3(xExamples, attributes));
-
-		return thisLevel;
-	}
-
-	private int bestAttribute(DataSubset examples, DataSubset attributes) throws IOException, IndexOutOfBoundsException
-	{
-		String[] row = new String[classColumn+1]; // 1 row of data
-		BufferedReader br;
-		String line = "";
-		int attributeIndex = attributes.get(0).getStart(); // runs over attributes, starts at first good one
-		int exampleIndex = examples.get(0).getStart(); //similarly for examples
-		int rowNumber = 0;
-		DataSubset bExamples = new DataSubset();
-		DataSubset oExamples = new DataSubset();
-		DataSubset xExamples = new DataSubset(); // these 3 will hold A=v_i subsets
-		int minAttribute = -1; // best Attribute
-		double currentMinEntropy = 0, tempEntropy = 1;
-		for (int currentAttribute = 0; currentAttribute < classColumn ; currentAttribute++)
-		{
-			br = new BufferedReader (new FileReader (this.dataSource));
-			exampleIndex = examples.get(0).getStart(); //reset top of file
-			bExamples.clear();
-			oExamples.clear();
-			xExamples.clear(); // clean out the lists from previous iteration
-
-			/* THE LEGALIZER, but for ATTRIBUTES, because EQUALITE
-			 * The following block of code finds if the current attribute is included in the attribute set
-			 * moves the attributeIndex until either attributes end
-			 * or we exceed the total number of attributes
-			 * hence confirming where the attribute number lies w.r.t intervals
-			 */
-			if (currentAttribute < attributes.get(attributeIndex).getStart())
-			{
-				continue; // we traverse from the left, so currentAttribute >= attributes.get(attributeIndex).getEnd() is ensured
-				// hence we can discard
-			}
-			else
-			{
-				try
-				{
-					while (currentAttribute >= attributes.get(attributeIndex++).getEnd()); // look in the next index and so on
-				}
-				catch (IndexOutOfBoundsException e) // no more attributes to check
-				{
-					line = null; // use this as a flag
-					break;
-				}
-				/* At this point (recall we increment within while loop)
-				 * attrubutes[attributeIndex-2].getEnd() <= currentAttribute < attributes[attributeIndex-1].getEnd()
-				 * so we can discard if currentAttribute < attributes[attributeIndex-1].getStart()
-				 */
-				if (currentAttribute < attributes.get(attributeIndex-1).getStart())
-					continue; //discard
-			}
-			/* END OF LEGALIZER */
-			while((line = br.readLine()) != null && exampleIndex < examples.size())
-			{
-				rowNumber++;
-				/* THE LEGALIZER 3.0 (this time for examples again)
-				 * The following block of code finds if the current row is included in the subset
-				 * moves the exampleIndex until either examples end
-				 * or we exceed the row number
-				 * hence confirming where the row number lies w.r.t intervals
-				 */
-				if (rowNumber < examples.get(exampleIndex).getStart())
-				{
-					continue; // we traverse from the left, so rowNumber >= examples[exampleIndex-1].getStart() is ensured
-					// hence we can discard
-				}
-				else
-				{
-					try
-					{
-						while (rowNumber >= examples.get(exampleIndex++).getEnd()); // look in the next index and so on
-					}
-					catch (IndexOutOfBoundsException e) // no more examples
-					{
-						line = null; // use this as a flag for all breaks other than moving to other cases
-						break;
-					}
-					/* At this point (recall we increment within while loop)
-					 * examples[exampleIndex-2].getEnd() <= rowNumber < examples[exampleIndex-1].getEnd()
-					 * so we can discard if rowNumber < examples[exampleIndex-1].getStart()
-					 */
-					if (rowNumber < examples.get(exampleIndex-1).getStart())
-						continue; //discard
-				}
-				/* END OF LEGALIZER */
-
-				/*The following block of code
-				 *builds Examples(v_i)
-				 */
-				row = line.split(",");
-				if (row[currentAttribute].equals("b"))
-					bExamples.addValue(currentAttribute);    // add current example to bExamples
-				else if (row[currentAttribute].equals("o"))
-					oExamples.addValue(currentAttribute); // and so on
-				else
-					xExamples.addValue(currentAttribute);
-
-			}
-			br.close();
-			/* PANDA LISTEN : pliss to review my usage of multiple readers. can we do better? */
-
-			/* The following block of code
-			 * Computes Shannon entropies of {b,o,x}Examples
-			 * Maintains minimum such
-			 * over all Attributes in given attribute subset
-			 */
-			tempEntropy = this.entropyOf(bExamples) + this.entropyOf(xExamples) + this.entropyOf(oExamples);
-			if (tempEntropy < currentMinEntropy)
-			{
-			    currentMinEntropy = tempEntropy;
-			    minAttribute = currentAttribute;
-			}
-		}			      
-		return minAttribute; // best attribute to branch on
-	}
-
-	/************************* *************************/
-
-	/**
-	 * @description Calculates the Shannon entropy of a given
-	 * subset of the original data
-	 * 
-	 * entropy = - ( P(win)log P(win) + P(draw)log P(draw) + P(loss)log P(loss) )
-	 * The probabilities are calculated simply by a ratio of counts.
-	 * 
+	/* BASE CASE 1
+	 * all nodes are of same class C
+	 * return leaf node labelled C
 	 */
-	private double entropyOf(DataSubset subset) {
-		int winCount = 0;
-		int drawCount = 0;
-		int lossCount = 0;
-		int totalCount = 0;
-		double ans = 0;
+	DataSubset[] classArrayNow = new DataSubset[3];
+	for (int cl = 0; cl < 3; cl++)
+	{
+	    classArrayNow[i] = examples.getIntersectionWith(classArray[i]);
+	}
+	if (classArrayNow[1].isEmpty())
+	{
+	    if (classArrayNow[2].isEmpty())
+	    {
+		decisionTree.setRootLabel("draw");
+		return decisionTree;
+	    }
+	    else if (classArrayNow[0].isEmpty())
+	    {
+		decisionTree.setRootLabel("loss");
+		return decisionTree;
+	    }
+	}
+	else if (classArrayNow[0].isEmpty() && classArrayNow[2].isEmpty())
+        {
+	    decisionTree.setRootLabel("win");
+	    return decisionTree;
+	}
 
-		BufferedReader br = null;
-		try {
-			br = new BufferedReader(new FileReader(this.dataSource));
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+	/*------------------- -------------------*/
+
+	/* BASE CASE 2
+	 * No attributes left to decide by
+	 * Return leaf node labelled by majority class
+	 */
+	// compute majority outside, since it is also required in latter case
+	String majority = classArrayNow[0].size() > classArrayNow[1].size() && classArrayNow[0].size() > classArrayNow[2].size ? "draw" : (classArrayNow[1].size() > classArrayNow[2].size() ? "win" : "loss"); 
+	if (attributes.isEmpty())
+	{
+	    decisionTree.setRootLabel(majority);
+	    return decisionTree;
+	}
+
+	/*------------------- -------------------*/
+
+	/* NONTRIVIAL CASE
+	 * Among all attributes, pick A such that
+	 * entropy[A = b] + entropy[A = o] + entropy[A = x] is minimum
+	 * label root node with A. Construct and return the following tree :
+	 *
+	 * For each value v of A, add a branch labelled v 
+	 * For a v branch, either
+	 ** TRIVIAL SUBCASE v.1
+	 * * (insufficient examples case)
+	 * * [A = v] is empty i.e. subsetsByAttribute[A][v].isEmpty()
+	 * * Return leaf node labelled by majority class.
+	 ** RECURSIVE SUBCASE v.2
+	 * * Recursively compute decision tree on [A = v] using remaining attributes
+	 * * Add this tree as a subtree on the branch labelled v
+	 ** 
+	 */
+
+	Iterator<Interval> attributeIter = attributes.iterator();
+	int currAttribute = 0;
+	Interval currInterval;
+	double currEntropy, minEntropy = 1;
+	int bestAttribute;
+	// while loop to go over attributes and pick best according to entropy
+	while (attributeIter.hasNext()) 
+	{
+	    /* Legalizer
+	     * Makes sure the attributes we consider
+	     * Are those still not branched on
+	     */
+	    currInterval = attributeIter.next();
+	    while (currAttribute++ < currInterval.getStart())
+	    {
+		continue; // discard 
+	    }
+	    if (--currAttribute >= currInterval.getEnd())
+		continue; // look in next interval
+	    /*------- End of Legalizer --------*/
+
+	    // compute Shannon entropy associated with deciding by A
+	    currEntropy = 0;
+	    for (int attrVal = 0 ; attrVal < 3; attrVal++)
+	    {
+		currEntropy += entropyOf(attributeArray[currAttribute][attrVal]);
+	    }
+	    
+	    // compare with Shannon entropy corresponding to other attributes, and maintain minimum
+	    if (currEntropy < minEntropy)
+	    {
+		minEntropy = currEntropy;
+		bestAttribute = currAttribute;
+	    }
+	}
+
+	// label root node by best attribute
+	decisionTree.setRootLabel(Integer.toString(bestAttribute));
+
+	// update attribute subset to remove A, since we will now branch out
+	attributes.removeValue(bestAttribute);
+
+
+	// add subtrees labelled by b,o,x
+	String[] temp = {"draw","win","loss"};
+	for (int valA = 0 ; valA < 3; valA++)
+	{
+	    if (attributeArray[bestAttribute][valA].isEmpty()) // trivial case
+		decisionTree.addSubtree(temp[i], new Tree(majority));
+	    else // recursive case
+	    {
+		decisionTree.addSubtree(temp[i].Integer.toString(valA), makeTree(examples.getIntersectionWith(attributeArray[bestAttribute][valA]), attributes)); // new attributes does not have A, new examples all have A = valA
+	    }
+	}
+	return decisionTree;
+    }
+
+    /************************* *************************/   
+    
+    /**
+     * @description obtains the classifier tree by
+     * calling computeSubsets method
+     * calling makeTree for the first time
+     */
+    private void trainTreeClassifier()
+    {
+	computeSubsets();
+	classifierTree = makeTree((new DataSubset().addRun(new Interval(0,TRAINING_DATA_LENGTH))), (new DataSubset().addRun(new Interval(0, ATTRIBUTE_SIZE))));
+    }
+
+    /************************* *************************/   
+    
+    /**
+     * @description classifies a single row of data based on
+     * the tree that is passed. assumed to be called after trainTreeClassifier()
+     */
+    private String classify(String[] row, Tree subTreeHere)
+    {
+	if (row.length != ATTRIBUTE_SIZE + 1)
+	    throw (new RunTimeException e ("Invalid data!"));
+	if (subTreeHere.isLeaf())
+	    return Integer.parseInt(subTreeHere.RootLabel());
+	int attributeHere = Integer.parseInt(subTreeHere.getRootLabel());
+	String valueHere = row[attributeHere];
+	Tree subTreeNext = subTreeHere.getChildren().get(valueHere);
+	return classify(row, subTreeNext);
+    }
+    
+    /************************* *************************/   
+    
+    /**
+     * @throws IOException
+     * @description tests the test data by repeatedly calling classify
+     * using classifierTree
+     */
+    private void testTreeClassifier() throws IOException
+    {
+	int total = 0;
+	int correct = 0;
+	BufferedReader br = new BufferedReader (new FileReader (TESTING_DATA_SOURCE));
+	String currLine = "";
+	String[] row = new String[ATTRIBUTE_SIZE+1]
+	while ((currLine = br.readLine()) != null)
+	{
+	    row = currLine.split(",");
+	    correct = classify(row, classifierTree).equals(row[ATTRIBUTE_SIZE]) ? correct+1 : correct;
+	    total++;
+	}
+	System.out.println()
+    }
+    
+    /************************* *************************/
+    
+    /**
+     * @description Calculates the Shannon entropy of a given
+     * subset of the original data
+     * 
+     * entropy = - ( P(win)log P(win) + P(draw)log P(draw) + P(loss)log P(loss) )
+     * The probabilities are calculated simply by a ratio of counts.
+     * 
+     */
+    private double entropyOf(DataSubset subset) { // PANDA(?) TODO optimize using subsetsByAttribute
+	int winCount = 0;
+	int drawCount = 0;
+	int lossCount = 0;
+	int totalCount = 0;
+	double ans = 0;
+	
+	BufferedReader br = null;
+	try {
+	    br = new BufferedReader(new FileReader(this.dataSource));
+	} catch (FileNotFoundException e) {
+	    // TODO Auto-generated catch block
+	    e.printStackTrace();
+	}
+	if(br != null) {
+	    String currLine = "";
+	    try {
+		while((currLine = br.readLine()) != null) {
+		    if(currLine.endsWith("win")) {
+			winCount++;
+		    } else if(currLine.endsWith("draw")) {
+			drawCount++;
+		    } else if(currLine.endsWith("loss")) {
+			lossCount++;
+		    } else { // Data line ends with something other than {win, draw, loss}
+			throw(new RuntimeException("Invalid data line!"));
+		    }
+		    totalCount++;
 		}
-		if(br != null) {
-			String currLine = "";
-			try {
-				while((currLine = br.readLine()) != null) {
-					if(currLine.endsWith("win")) {
-						winCount++;
-					} else if(currLine.endsWith("draw")) {
-						drawCount++;
-					} else if(currLine.endsWith("loss")) {
-						lossCount++;
-					} else { // Data line ends with something other than {win, draw, loss}
-						throw(new RuntimeException("Invalid data line!"));
-					}
-					totalCount++;
-				}
-				br.close();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			if(totalCount != 0) {
-				double pWin = (double)winCount / (double)totalCount;
-				double pDraw = (double)drawCount / (double)totalCount;
-				double pLoss = (double)lossCount / (double)totalCount;
-				ans -= pWin * Math.log(pWin);
-				ans -= pDraw * Math.log(pDraw);
-				ans -= pLoss * Math.log(pLoss);
-			}
-		}
-		return ans;
-	}    
+		br.close();
+	    } catch (IOException e) {
+		// TODO Auto-generated catch block
+		e.printStackTrace();
+	    }
+	    if(totalCount != 0) {
+		double pWin = (double)winCount / (double)totalCount;
+		double pDraw = (double)drawCount / (double)totalCount;
+		double pLoss = (double)lossCount / (double)totalCount;
+		ans -= pWin * Math.log(pWin);
+		ans -= pDraw * Math.log(pDraw);
+		ans -= pLoss * Math.log(pLoss);
+	    }
+	}
+	return ans;
+    }    
 }
 
 
