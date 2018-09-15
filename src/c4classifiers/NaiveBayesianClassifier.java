@@ -87,26 +87,37 @@ public class NaiveBayesianClassifier {
 	 * @description Compiles a list of probabilities based on
 	 * reading the data source file.
 	 */
-	private void buildCountsArrays(int dataset) throws IOException {
-		BufferedReader br = new BufferedReader(new FileReader(StaticConstants.TRAINING_DATA_SOURCE[dataset]));
-		String currLine = "";
-		while((currLine = br.readLine()) != null) {
-			String[] tmpArray = currLine.split(",");
-			String result = tmpArray[StaticConstants.CLASS_COLUMN]; // "win", "draw", "loss"
-			for(int i=0;i<StaticConstants.CLASS_COLUMN;++i) {
-				if(tmpArray[i].equals("b")) {
-					countsGiven.get(result)[i][0]++;
-				} else if(tmpArray[i].equals("o")) {
-					countsGiven.get(result)[i][1]++;
-				} else if(tmpArray[i].equals("x")) {
-					countsGiven.get(result)[i][2]++;
-				} else {
-					throw(new RuntimeException("Invalid data!"));
+	private void buildCountsArrays(int dataset) {
+		BufferedReader br = null;
+		try {
+			br = new BufferedReader(new FileReader(StaticConstants.TRAINING_DATA_SOURCE[dataset]));
+			String currLine = "";
+			while((currLine = br.readLine()) != null) {
+				String[] tmpArray = currLine.split(",");
+				String result = tmpArray[StaticConstants.CLASS_COLUMN]; // "win", "draw", "loss"
+				for(int i=0;i<StaticConstants.CLASS_COLUMN;++i) {
+					if(tmpArray[i].equals("b")) {
+						countsGiven.get(result)[i][0]++;
+					} else if(tmpArray[i].equals("o")) {
+						countsGiven.get(result)[i][1]++;
+					} else if(tmpArray[i].equals("x")) {
+						countsGiven.get(result)[i][2]++;
+					} else {
+						throw(new RuntimeException("Invalid data!"));
+					}
 				}
+				resultCountMap.get(result)[0]++;
 			}
-			resultCountMap.get(result)[0]++;
+		} catch(IOException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				br.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
-		br.close();
 		totalCount = resultCountMap.get("win")[0] + resultCountMap.get("draw")[0] + resultCountMap.get("loss")[0];
 		//		System.out.println(totalCount);
 	}
@@ -182,34 +193,44 @@ public class NaiveBayesianClassifier {
 	/************************* *************************/
 
 	/**
-	 * @throws IOException 
 	 * @description Validates the model built from training
 	 * data on the corresponding testing data.
 	 */
-	public String crossValidator(int dataset) throws IOException {
+	public String crossValidator(int dataset) {
 		String ans = "";
 		int correctCount = 0, totalCount = 0;
 
-		BufferedReader br = new BufferedReader(new FileReader(StaticConstants.TESTING_DATA_SOURCE[dataset]));
-		String currLine = "";
-		while((currLine = br.readLine()) != null) {
-			String predictedResult = classify(currLine);
-			String actualResult = "";
-			if(currLine.endsWith("win")) {
-				actualResult = "win";
-			} else if(currLine.endsWith("draw")) {
-				actualResult = "draw";
-			} else if(currLine.endsWith("loss")) {
-				actualResult = "loss";
-			} else {
-				throw(new RuntimeException("Invalid data!"));
+		BufferedReader br = null;
+		try {
+			br = new BufferedReader(new FileReader(StaticConstants.TESTING_DATA_SOURCE[dataset]));
+			String currLine = "";
+			while((currLine = br.readLine()) != null) {
+				String predictedResult = classify(currLine);
+				String actualResult = "";
+				if(currLine.endsWith("win")) {
+					actualResult = "win";
+				} else if(currLine.endsWith("draw")) {
+					actualResult = "draw";
+				} else if(currLine.endsWith("loss")) {
+					actualResult = "loss";
+				} else {
+					throw(new RuntimeException("Invalid data!"));
+				}
+				if(actualResult.equals(predictedResult)) {
+					correctCount++;
+				}
+				totalCount++;
 			}
-			if(actualResult.equals(predictedResult)) {
-				correctCount++;
+		} catch(IOException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				br.close();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
-			totalCount++;
 		}
-		br.close();
 		ans = String.valueOf(correctCount) + " / " + String.valueOf(totalCount);
 		return ans;
 	}
