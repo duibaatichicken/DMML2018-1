@@ -109,11 +109,19 @@ public class TreeClassifier
 	BufferedReader br = new BufferedReader (new FileReader (StaticConstants.TRAINING_SOURCE_DAZZLE[dataset]));
 	String currLine = "";
 	int lineCount = 0;
-	String[] row = new String[StaticConstants.CLASS_COLUMN];
-	while((currLine = br.readLine()) != null)
+	/*INTERFERING testline System.out.print(br.readLine());*/
+	while((currLine = br.readLine()) != null) // PANDA HALP
 	{
-	    row = currLine.split(",");
 	    /*testline System.out.println(currLine);*/
+	    /*testline if (lineCount >= 67557) break; */
+	    String[] row = currLine.split(",");
+	    /*testline*/ if (lineCount % 100 == 0) System.out.print(lineCount+" "); if (lineCount % 5000 == 0) System.out.print("\n");
+	    /*testlines begin
+	    if (lineCount % 100 == 0)
+		System.out.print (lineCount+" ");
+	    if (lineCount % 10000 == 0)
+		System.out.print("\n");
+	    end testlines*/
 		if (row[StaticConstants.CLASS_COLUMN].equals("draw"))
 		subsetsByClass[0].addValue(lineCount);
 	    else if (row[StaticConstants.CLASS_COLUMN].equals("win"))
@@ -124,15 +132,17 @@ public class TreeClassifier
 	    {
 		/*testline System.out.println(row[i]);*/
 		if (row[i].equals("b"))
-		    subsetsByAttribute[i][0].addValue(lineCount++);
+		    subsetsByAttribute[i][0].addValue(lineCount);
 		else if (row[i].equals("o"))
-		    subsetsByAttribute[i][1].addValue(lineCount++);
+		    subsetsByAttribute[i][1].addValue(lineCount);
 		else if (row[i].equals("x"))
-		    subsetsByAttribute[i][2].addValue(lineCount++);
+		    subsetsByAttribute[i][2].addValue(lineCount);
 		else
 		    throw(new RuntimeException("Invalid data!"));
 	    }
+	    lineCount++;
 	}
+	br.close();
     }
 
     /************************* *************************/   
@@ -346,6 +356,7 @@ public class TreeClassifier
 	    correct = classify(row, classifierTree).equals(actualClass) ? correct+1 : correct;
 	    total++;
 	}
+	br.close();
 	accuracy = (float)correct / (float)total;
         System.out.println("\nAccuracy "+Integer.toString(correct)+"/"+Integer.toString(total)+" = "+Float.toString(accuracy));
         return accuracy;
