@@ -66,14 +66,13 @@ public class TreeClassifier
      */
     private Tree classifierTree;
 
-    private static int splitNumber = i;
-    if (splitNumber < 1 
-    String s = i == 10 ? 
-    private static String TRAINING_DATA_SOURCE = "src/data/connect-4-cv_training_data-10-01.data";
-    private static String TESTING_DATA_SOURCE = "src/data/connect-4-cv_test_data-10-01.data"; 
+    private static int splitNumber = 1;
+    String s = splitNumber >= 10 ? Integer.toString(splitNumber) : "0"+Integer.toString(splitNumber);  
+    private static String TRAINING_DATA_SOURCE = "src/data/connect-4-cv_training_data-10-"+s+".data";
+    private static String TESTING_DATA_SOURCE = "src/data/connect-4-cv_test_data-10-"+s+".data"; 
     private static int ATTRIBUTE_SIZE = 42;
-    private static int TRAINING_DATA_LENGTH = 6755;
-    
+    private static int TRAINING_DATA_LENGTH = i == 10 ? 6762 : 6755;
+
     /************************** ***************************/
     
     /**
@@ -115,9 +114,8 @@ public class TreeClassifier
 	String[] row = new String[ATTRIBUTE_SIZE];
 	while((currLine = br.readLine()) != null)
 	{
-	    row = currLine.split(",");
-	    
-	    if (row[ATTRIBUTE_SIZE].equals("draw"))
+	    row = currLine.split(",")
+		if (row[ATTRIBUTE_SIZE].equals("draw"))
 		subsetsByClass[0].addValue(lineCount);
 	    else if (row[ATTRIBUTE_SIZE].equals("win"))
 		subsetsByClass[1].addValue(lineCount);
@@ -152,25 +150,25 @@ public class TreeClassifier
 	 * all nodes are of same class C
 	 * return leaf node labelled C
 	 */
-	DataSubset[] classArrayNow = new DataSubset[3];
+	DataSubset[] subsetsByClassNow = new DataSubset[3];
 	for (int cl = 0; cl < 3; cl++)
 	{
-	    classArrayNow[i] = examples.getIntersectionWith(classArray[i]);
+	    subsetsByClassNow[i] = examples.getIntersectionWith(subsetsByClass[i]);
 	}
-	if (classArrayNow[1].isEmpty())
+	if (subsetsByClassNow[1].isEmpty())
 	{
-	    if (classArrayNow[2].isEmpty())
+	    if (subsetsByClassNow[2].isEmpty())
 	    {
 		decisionTree.setRootLabel("draw");
 		return decisionTree;
 	    }
-	    else if (classArrayNow[0].isEmpty())
+	    else if (subsetsByClassNow[0].isEmpty())
 	    {
 		decisionTree.setRootLabel("loss");
 		return decisionTree;
 	    }
 	}
-	else if (classArrayNow[0].isEmpty() && classArrayNow[2].isEmpty())
+	else if (subsetsByClassNow[0].isEmpty() && subsetsByClassNow[2].isEmpty())
         {
 	    decisionTree.setRootLabel("win");
 	    return decisionTree;
@@ -183,7 +181,7 @@ public class TreeClassifier
 	 * Return leaf node labelled by majority class
 	 */
 	// compute majority outside, since it is also required in latter case
-	String majority = classArrayNow[0].size() > classArrayNow[1].size() && classArrayNow[0].size() > classArrayNow[2].size ? "draw" : (classArrayNow[1].size() > classArrayNow[2].size() ? "win" : "loss"); 
+	String majority = subsetsByClassNow[0].size() > subsetsByClassNow[1].size() && subsetsByClassNow[0].size() > subsetsByClassNow[2].size ? "draw" : (subsetsByClassNow[1].size() > subsetsByClassNow[2].size() ? "win" : "loss"); 
 	if (attributes.isEmpty())
 	{
 	    decisionTree.setRootLabel(majority);
@@ -234,7 +232,7 @@ public class TreeClassifier
 	    currEntropy = 0;
 	    for (int attrVal = 0 ; attrVal < 3; attrVal++)
 	    {
-		currEntropy += entropyOf(attributeArray[currAttribute][attrVal]);
+		currEntropy += entropyOf(subsetsbyAttribute[currAttribute][attrVal]);
 	    }
 	    
 	    // compare with Shannon entropy corresponding to other attributes, and maintain minimum
@@ -256,11 +254,11 @@ public class TreeClassifier
 	String[] temp = {"draw","win","loss"};
 	for (int valA = 0 ; valA < 3; valA++)
 	{
-	    if (attributeArray[bestAttribute][valA].isEmpty()) // trivial case
+	    if (subsetsbyAttribute[bestAttribute][valA].isEmpty()) // trivial case
 		decisionTree.addSubtree(temp[i], new Tree(majority));
 	    else // recursive case
 	    {
-		decisionTree.addSubtree(temp[i].Integer.toString(valA), makeTree(examples.getIntersectionWith(attributeArray[bestAttribute][valA]), attributes)); // new attributes does not have A, new examples all have A = valA
+		decisionTree.addSubtree(temp[i].Integer.toString(valA), makeTree(examples.getIntersectionWith(subsetsbyAttribute[bestAttribute][valA]), attributes)); // new attributes does not have A, new examples all have A = valA
 	    }
 	}
 	return decisionTree;
@@ -317,7 +315,8 @@ public class TreeClassifier
 	    correct = classify(row, classifierTree).equals(row[ATTRIBUTE_SIZE]) ? correct+1 : correct;
 	    total++;
 	}
-	System.out.println()
+	System.out.println("Split "+Integer.toString(splitNumber));
+	System.out.println("Accuracy "+Integer.toString(correct)+"/"+Integer.toString(total)+" = "+Float.toString((float)correct/(float)total));
     }
     
     /************************* *************************/
@@ -330,6 +329,25 @@ public class TreeClassifier
      * The probabilities are calculated simply by a ratio of counts.
      * 
      */
+    private double entropyOf(DataSubset subset)
+    {
+	int winCount = subset.getIntersectionWith(subsetsByClass[1]).size();
+	int drawCount = subset.getIntersectionWith(subsetsByClass[0]).size();
+	int lossCount = subset.getIntersectionWith(subsetsByClass[2]).size();
+	int totalCount = winCount + drawCount + lossCount;
+	double ans = 0;
+	if(totalCount != 0)
+	{
+	    double pWin = (double)winCount / (double)totalCount;
+	    double pDraw = (double)drawCount / (double)totalCount;
+	    double pLoss = (double)lossCount / (double)totalCount;
+	    ans -= pWin * Math.log(pWin);
+	    ans -= pDraw * Math.log(pDraw);
+	    ans -= pLoss * Math.log(pLoss);
+	}
+	return ans;
+    }
+    /*----------------------------------- attempting sleeker version using new DS
     private double entropyOf(DataSubset subset) { // PANDA(?) TODO optimize using subsetsByAttribute
 	int winCount = 0;
 	int drawCount = 0;
@@ -374,7 +392,18 @@ public class TreeClassifier
 	    }
 	}
 	return ans;
-    }    
+	}   */ 
+    /************************* *************************/
+    
+    /**
+     * @description Main method for calls to trainTree and testTree
+     */
+    public static void main(String args[])
+    {
+	trainTreeClassifier();
+	testTreeClassifier();
+    }
+
 }
 
 
