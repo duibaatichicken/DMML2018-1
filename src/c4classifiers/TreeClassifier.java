@@ -27,12 +27,11 @@ package c4classifiers;
 */
 
 import java.io.*;
-import ds.DataSubset;
-import ds.Interval;
-import ds.Tree;
+import ds.*;
 import java.util.Iterator;
 
 import util.StaticConstants;
+import util.HelperFunctionsDazzle;
 
 /* A classifier for connect4 dataset
  * using ID3 decision tree algorithm
@@ -93,6 +92,7 @@ public class TreeClassifier
 	
 	this.classifierTree = new Tree();
     }
+
     
     /************************* *************************/   
     
@@ -109,36 +109,60 @@ public class TreeClassifier
 	BufferedReader br = new BufferedReader (new FileReader (StaticConstants.TRAINING_SOURCE_DAZZLE[dataset]));
 	String currLine = "";
 	int lineCount = 0;
-	/*INTERFERING testline System.out.print(br.readLine());*/
+	String[] lastRow = new String[StaticConstants.CLASS_COLUMN + 1];
+        Interval[] currRun = new Interval[StaticConstants.CLASS_COLUMN + 1];
+	for (int i = 0; i <= StaticConstants.CLASS_COLUMN; i++) // initialize
+	{
+	    lastRow[i] = "";
+	    currRun[i] = new Interval(0,1);
+	}
+       	/*INTERFERING testline System.out.print(br.readLine());*/
 	while((currLine = br.readLine()) != null) // PANDA HALP
 	{
 	    /*testline System.out.println(currLine);*/
 	    /*testline if (lineCount >= 67557) break; */
 	    String[] row = currLine.split(",");
-	    /*testline*/ if (lineCount % 100 == 0) System.out.print(lineCount+" "); if (lineCount % 5000 == 0) System.out.print("\n");
-	    /*testlines begin
-	    if (lineCount % 100 == 0)
-		System.out.print (lineCount+" ");
-	    if (lineCount % 10000 == 0)
-		System.out.print("\n");
-	    end testlines*/
-		if (row[StaticConstants.CLASS_COLUMN].equals("draw"))
-		subsetsByClass[0].addValue(lineCount);
-	    else if (row[StaticConstants.CLASS_COLUMN].equals("win"))
-		subsetsByClass[1].addValue(lineCount);
-	    else if (row[StaticConstants.CLASS_COLUMN].equals("loss"))
-		subsetsByClass[2].addValue(lineCount);
-	    for (int i = 0 ; i < StaticConstants.CLASS_COLUMN ; i++)
+	    for (int attr = 0; attr < StaticConstants.CLASS_COLUMN; attr++) // update attribute runs
 	    {
-		/*testline System.out.println(row[i]);*/
-		if (row[i].equals("b"))
-		    subsetsByAttribute[i][0].addValue(lineCount);
-		else if (row[i].equals("o"))
-		    subsetsByAttribute[i][1].addValue(lineCount);
-		else if (row[i].equals("x"))
-		    subsetsByAttribute[i][2].addValue(lineCount);
+		if (row[attr].equals(lastRow[attr]))
+		    currRun[attr].setEnd(lineCount+1);
 		else
-		    throw(new RuntimeException("Invalid data!"));
+		{
+		    try // this solves the very first case, where the attribute value is just initiazlied to ""
+		    {
+			subsetsByAttribute[attr][HelperFunctionsDazzle.attrToInt(lastRow[attr])].addRun(currRun[attr]);
+		    }
+		    catch (RuntimeException e)
+		    {
+			//pass
+		    }
+		    finally
+		    {
+			lastRow[attr] = row[attr];
+			currRun[attr].setStart(lineCount);
+			currRun[attr].setEnd(lineCount+1);
+		    }
+		}
+	    }
+	    // update class runs
+	    if (row[StaticConstants.CLASS_COLUMN].equals(lastRow[StaticConstants.CLASS_COLUMN]))
+		currRun[StaticConstants.CLASS_COLUMN].setEnd(lineCount+1);
+	    else
+	    {
+		try // this solves the very first case, where the class value is just initialized to ""
+		{
+		    subsetsByClass[HelperFunctionsDazzle.classToInt(lastRow[StaticConstants.CLASS_COLUMN])].addRun(currRun[StaticConstants.CLASS_COLUMN]);
+		}
+		catch (RuntimeException e)
+		{
+		    //pass
+		}
+		finally
+		{
+		    lastRow[StaticConstants.CLASS_COLUMN] = row[StaticConstants.CLASS_COLUMN];
+		    currRun[StaticConstants.CLASS_COLUMN].setStart(lineCount);
+		    currRun[StaticConstants.CLASS_COLUMN].setEnd(lineCount+1);
+		}
 	    }
 	    lineCount++;
 	}
@@ -289,19 +313,19 @@ public class TreeClassifier
      */
     public void trainTreeClassifier(int dataset) throws IOException
     {
-	System.out.println("Training Dataset "+Integer.toString(dataset));
-	System.out.print("\tComputing Attribute and Class Subsets...");
+	System.out.println("Training Dataset "+Integer.toString(dataset+1));
+	System.out.print("\tComputing Attribute and Class Subsets");
 	computeSubsets(dataset);
-	System.out.println("done");
-	System.out.print("\tConstructing Arguments for ID3...");
+	System.out.println(" ...done");
+	System.out.print("\tConstructing Arguments for ID3");
 	DataSubset exampleSubset = new DataSubset();
 	exampleSubset.addRun(new Interval(0, StaticConstants.DATA_LENGTH));
 	DataSubset attributeSubset = new DataSubset();
 	exampleSubset.addRun(new Interval(0, StaticConstants.CLASS_COLUMN));
-	System.out.println("done");
-	System.out.print("\tConstructing Decision Tree...");
+	System.out.println(" ...done");
+	System.out.print("\tConstructing Decision Tree");
 	classifierTree = makeTree(exampleSubset, attributeSubset);
-	System.out.println("done");
+	System.out.println(" ...done");
     }
 
     /************************* *************************/   
@@ -331,7 +355,7 @@ public class TreeClassifier
      */
     public float testTreeClassifier(int dataset) throws IOException
     {
-	System.out.println("Testing Dataset "+Integer.toString(dataset));
+	System.out.println("Testing Dataset "+Integer.toString(dataset+1));
 	int total = 0;
 	int correct = 0;
 	float accuracy = 0;
@@ -349,16 +373,16 @@ public class TreeClassifier
 		actualClass = "loss";
 	    else
 		throw (new RuntimeException("Invalid data!"));
-		       
-	    if (total % 1000 == 0)
-		System.out.println("\tClassifying rows "+Integer.toString(total)+"-"+Integer.toString(total+999)+" of data");
 	    row = currLine.split(",");
 	    correct = classify(row, classifierTree).equals(actualClass) ? correct+1 : correct;
+	    if (total % 2000 == 0)
+		System.out.println("Classified up to Row "+Integer.toString(total)+" of data");
 	    total++;
 	}
 	br.close();
 	accuracy = (float)correct / (float)total;
-        System.out.println("\nAccuracy "+Integer.toString(correct)+"/"+Integer.toString(total)+" = "+Float.toString(accuracy));
+	System.out.println("Classification complete");
+        System.out.println("Correctly Classified "+Integer.toString(correct)+"/"+Integer.toString(total)+"\nAccuracy = "+Float.toString(accuracy));
         return accuracy;
     }
     
@@ -378,7 +402,7 @@ public class TreeClassifier
 	TreeClassifier tc;
 	for (int dataset = 0; dataset < 10; dataset++)
 	{
-	    System.out.println("---------------------------\nValidating Fold "+Integer.toString(dataset));
+	    System.out.println("---------------------------\nValidating Fold "+Integer.toString(dataset+1));
 	    tc = new TreeClassifier();
 	    tc.trainTreeClassifier(dataset);
 	    avgAccuracy += tc.testTreeClassifier(dataset) * StaticConstants.TESTING_DATA_LENGTH[dataset];
