@@ -219,7 +219,78 @@ public class DataSubset extends LinkedList<Interval> {
 	 */
 	public DataSubset getIntersectionWith(DataSubset ds) {
 		DataSubset ans = new DataSubset();
-		// TODO: Write code for intersection of subsets.
+		Iterator<Interval> iter1 = this.iterator();
+		Iterator<Interval> iter2 = ds.iterator();
+		boolean in1 = false;
+		boolean in2 = false;
+		Interval curr1 = new Interval(-1,-1);
+		Interval curr2 = new Interval(-1,-1);
+		while (true)
+		{
+		    if (!in1 && !iter1.hasNext())
+			break;
+		    else if (!in2 && !iter2.hasNext())
+			break;
+		    while (!in1 && !in2 && iter1.hasNext() && iter2.hasNext())
+		    {
+			curr1 = iter1.next();
+			curr2 = iter2.next();
+			if (curr1.intersects(curr2))
+		        {
+			    ans.addRun(new Interval(Math.max(curr1.getStart(), curr2.getStart()), Math.min(curr1.getEnd(), curr2.getEnd())));
+			    if (curr1.getEnd() > curr2.getEnd())
+				in1 = true;
+			    else if (curr2.getEnd() > curr1.getEnd())
+				in2 = true;
+			}
+			else if (curr1.getStart() >= curr2.getEnd())
+			    in1 = true;
+			else // curr1 preceeds curr2
+			    in2 = true;
+		    }
+		    while (!in1 && in2 && iter1.hasNext())
+		    {
+			curr1 = iter1.next();
+			if (curr1.intersects(curr2))
+		        {
+			    ans.addRun(new Interval(Math.max(curr1.getStart(), curr2.getStart()), Math.min(curr1.getEnd(), curr2.getEnd())));
+			    if (curr1.getEnd() > curr2.getEnd())
+			    {
+				in1 = true;
+				in2 = false;
+			    }
+			    else if (curr1.getEnd() == curr2.getEnd())
+				in2 = false;
+			}
+			else if (curr1.getStart() >= curr2.getEnd())
+			{
+			    in1 = true;
+			    in2 = false;
+			}
+		    }
+		    while (in1 && !in2 && iter2.hasNext())
+		    {
+			curr2 = iter2.next();
+			if (curr2.intersects(curr1))
+			{
+			    ans.addRun(new Interval(Math.max(curr2.getStart(), curr1.getStart()), Math.min(curr2.getEnd(),curr1.getEnd())));
+			    if (curr2.getEnd() > curr1.getEnd())
+			    {
+				in2 = true;
+				in1 = false;
+			    }
+			    else if (curr1.getEnd() == curr2.getEnd())
+				in1 = false;
+			}
+			else if (curr2.getStart() >= curr1.getEnd())
+			{
+			    in2 = true;
+			    in1 = false;
+			}
+		    }
+		    if (in1 && in2)
+			throw (new RuntimeException ("Bad algorithm!"));
+		}
 		return ans;
 	}
 	
