@@ -41,7 +41,16 @@ public class DataSubset extends LinkedList<Interval> {
 		}
 		return ans;
 	}
+
+        /************************* *************************/
 	
+	/**
+	 * @description Redefines emptiness to be count = 0
+	 */
+        public boolean isEmpty()
+        {
+	    return this.getCount() == 0;
+        }
 	/* (non-Javadoc)
 	 * @see java.util.AbstractCollection#toString()
 	 */

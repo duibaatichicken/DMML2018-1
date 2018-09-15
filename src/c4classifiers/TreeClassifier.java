@@ -32,6 +32,8 @@ import ds.Interval;
 import ds.Tree;
 import java.util.Iterator;
 
+import util.StaticConstants;
+
 /* A classifier for connect4 dataset
  * using ID3 decision tree algorithm
  */
@@ -63,12 +65,6 @@ public class TreeClassifier
      */
     private Tree classifierTree;
 
-    private static int splitNumber = 1;
-    private static int ATTRIBUTE_SIZE = 42;
-    private static String TRAINING_DATA_SOURCE = "src/data/connect4-cv_training_data-10-01.data";
-    private static String TESTING_DATA_SOURCE = "src/data/connect4-cv_test_data-10-01.data";
-    private static int TRAINING_DATA_LENGTH = splitNumber == 10 ? 6762 : 6755;
-
     /************************** ***************************/
     
     /**
@@ -77,16 +73,22 @@ public class TreeClassifier
     public TreeClassifier()
     {
 	
-	this.subsetsByAttribute = new DataSubset[ATTRIBUTE_SIZE][3];
+	this.subsetsByAttribute = new DataSubset[StaticConstants.CLASS_COLUMN][3];
 	this.subsetsByClass = new DataSubset[3];
 
 	// initializes each element of subsetsByAttribute to an empty DataSubset
-	for (int i = 0 ; i < ATTRIBUTE_SIZE ; i++)
+	for (int i = 0 ; i < StaticConstants.CLASS_COLUMN ; i++)
 	{
 	    for (int j = 0 ; j < 3 ; j++)
 	    {
 		this.subsetsByAttribute[i][j] = new DataSubset();
 	    }
+	}
+
+	// initializes each element of subsetsByClass to an empty DataSubset
+	for (int i = 0; i < 3; i++)
+	{
+	    this.subsetsByClass[i] = new DataSubset();
 	}
 	
 	this.classifierTree = new Tree();
@@ -102,28 +104,30 @@ public class TreeClassifier
      * subsetsByClass indexed by Outcomes(3)
      * Such that the [i]th element is the DataSubset [Class = c_i]
      */
-    private void computeSubsets() throws IOException
+    private void computeSubsets(int dataset) throws IOException
     {
-	BufferedReader br = new BufferedReader (new FileReader (TRAINING_DATA_SOURCE));
+	BufferedReader br = new BufferedReader (new FileReader (StaticConstants.TRAINING_SOURCE_DAZZLE[dataset]));
 	String currLine = "";
 	int lineCount = 0;
-	String[] row = new String[ATTRIBUTE_SIZE];
+	String[] row = new String[StaticConstants.CLASS_COLUMN];
 	while((currLine = br.readLine()) != null)
 	{
 	    row = currLine.split(",");
-		if (row[ATTRIBUTE_SIZE].equals("draw"))
+	    /*testline System.out.println(currLine);*/
+		if (row[StaticConstants.CLASS_COLUMN].equals("draw"))
 		subsetsByClass[0].addValue(lineCount);
-	    else if (row[ATTRIBUTE_SIZE].equals("win"))
+	    else if (row[StaticConstants.CLASS_COLUMN].equals("win"))
 		subsetsByClass[1].addValue(lineCount);
-	    else if (row[ATTRIBUTE_SIZE].equals("loss"))
+	    else if (row[StaticConstants.CLASS_COLUMN].equals("loss"))
 		subsetsByClass[2].addValue(lineCount);
-	    for (int i = 1 ; i < ATTRIBUTE_SIZE ; i++)
+	    for (int i = 0 ; i < StaticConstants.CLASS_COLUMN ; i++)
 	    {
+		/*testline System.out.println(row[i]);*/
 		if (row[i].equals("b"))
 		    subsetsByAttribute[i][0].addValue(lineCount++);
 		else if (row[i].equals("o"))
 		    subsetsByAttribute[i][1].addValue(lineCount++);
-		else if (row[i].equals("W"))
+		else if (row[i].equals("x"))
 		    subsetsByAttribute[i][2].addValue(lineCount++);
 		else
 		    throw(new RuntimeException("Invalid data!"));
@@ -273,14 +277,21 @@ public class TreeClassifier
      * calling computeSubsets method
      * calling makeTree for the first time
      */
-    public void trainTreeClassifier() throws IOException
+    public void trainTreeClassifier(int dataset) throws IOException
     {
-	computeSubsets();
+	System.out.println("Training Dataset "+Integer.toString(dataset));
+	System.out.print("\tComputing Attribute and Class Subsets...");
+	computeSubsets(dataset);
+	System.out.println("done");
+	System.out.print("\tConstructing Arguments for ID3...");
 	DataSubset exampleSubset = new DataSubset();
-	exampleSubset.addRun(new Interval(0, TRAINING_DATA_LENGTH));
+	exampleSubset.addRun(new Interval(0, StaticConstants.DATA_LENGTH));
 	DataSubset attributeSubset = new DataSubset();
-	exampleSubset.addRun(new Interval(0, ATTRIBUTE_SIZE));
+	exampleSubset.addRun(new Interval(0, StaticConstants.CLASS_COLUMN));
+	System.out.println("done");
+	System.out.print("\tConstructing Decision Tree...");
 	classifierTree = makeTree(exampleSubset, attributeSubset);
+	System.out.println("done");
     }
 
     /************************* *************************/   
@@ -291,7 +302,7 @@ public class TreeClassifier
      */
     private String classify(String[] row, Tree subTreeHere)
     {
-	if (row.length != ATTRIBUTE_SIZE + 1)
+	if (row.length != StaticConstants.CLASS_COLUMN + 1)
 	    throw (new RuntimeException("Invalid data!"));
 	if (subTreeHere.isLeaf())
 	    return subTreeHere.getRootLabel();
@@ -308,21 +319,62 @@ public class TreeClassifier
      * @description tests the test data by repeatedly calling classify
      * using classifierTree
      */
-    public void testTreeClassifier() throws IOException
+    public float testTreeClassifier(int dataset) throws IOException
     {
+	System.out.println("Testing Dataset "+Integer.toString(dataset));
 	int total = 0;
 	int correct = 0;
-	BufferedReader br = new BufferedReader (new FileReader (TESTING_DATA_SOURCE));
+	float accuracy = 0;
+	BufferedReader br = new BufferedReader (new FileReader (StaticConstants.TESTING_SOURCE_DAZZLE[dataset]));
 	String currLine = "";
-	String[] row = new String[ATTRIBUTE_SIZE+1];
+	String actualClass = "";
+	String[] row = new String[StaticConstants.CLASS_COLUMN + 1];
 	while ((currLine = br.readLine()) != null)
 	{
+	    if (currLine.endsWith("win"))
+		actualClass = "win";
+	    else if (currLine.endsWith("draw"))
+		actualClass = "draw";
+	    else if (currLine.endsWith("loss"))
+		actualClass = "loss";
+	    else
+		throw (new RuntimeException("Invalid data!"));
+		       
+	    if (total % 1000 == 0)
+		System.out.println("\tClassifying rows "+Integer.toString(total)+"-"+Integer.toString(total+999)+" of data");
 	    row = currLine.split(",");
-	    correct = classify(row, classifierTree).equals(row[ATTRIBUTE_SIZE]) ? correct+1 : correct;
+	    correct = classify(row, classifierTree).equals(actualClass) ? correct+1 : correct;
 	    total++;
 	}
-	System.out.println("Split "+Integer.toString(splitNumber));
-	System.out.println("Accuracy "+Integer.toString(correct)+"/"+Integer.toString(total)+" = "+Float.toString((float)correct/(float)total));
+	accuracy = (float)correct / (float)total;
+        System.out.println("\nAccuracy "+Integer.toString(correct)+"/"+Integer.toString(total)+" = "+Float.toString(accuracy));
+        return accuracy;
+    }
+    
+    /************************* *************************/   
+    
+    /**
+     * @throws IOException
+     * @description 10 fold cross validation of classifier by calling
+     * trainTreeClassifier and testTreeClassifier
+     * for values of dataset in 1...10
+     */
+
+    public static float tenfoldValidation() throws IOException
+    {
+	System.out.println("10-FOLD VALIDATION OF ID3 DECISION TREE ON UCI CONNECT4 DATASET");
+	float avgAccuracy = 0;
+	TreeClassifier tc;
+	for (int dataset = 0; dataset < 10; dataset++)
+	{
+	    System.out.println("---------------------------\nValidating Fold "+Integer.toString(dataset));
+	    tc = new TreeClassifier();
+	    tc.trainTreeClassifier(dataset);
+	    avgAccuracy += tc.testTreeClassifier(dataset) * StaticConstants.TESTING_DATA_LENGTH[dataset];
+	}
+	avgAccuracy /= StaticConstants.DATA_LENGTH;
+	System.out.println("---------------------------\nCROSS VALIDATION COMPLETE\nAverage Accuracy = "+Float.toString(avgAccuracy));
+	return avgAccuracy;
     }
     
     /************************* *************************/
@@ -403,13 +455,11 @@ public class TreeClassifier
     
     /**
      * @throws IOException
-     * @description Main method for calls to trainTree and testTree
+     * @description Main method for local testing
      */
     public static void main(String args[]) throws IOException
     {
-	TreeClassifier tc = new TreeClassifier();
-	tc.trainTreeClassifier();
-	tc.testTreeClassifier();
+	float crossAvg = tenfoldValidation();
     }
 
 }
