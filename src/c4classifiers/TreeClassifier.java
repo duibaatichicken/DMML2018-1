@@ -23,13 +23,10 @@ package c4classifiers;
 
 /* BIG TODO PANDA LISTEN (details inline)
 # | ISSUE | LINE NOS. (fuzzy) |
-----------------------------------
-2 | please review my reuse of reader objects | 230, 365, 440 |
-3 | perhaps need better emptiness check for DataSubset, including case {[r,r)} | 310 |
- */
+4 | Need getIntersectionWith to be defined
+*/
 
-import java.io.BufferedReader;
-import java.io.FileReader;
+import java.io.*;
 import ds.DataSubset;
 import ds.Interval;
 import ds.Tree;
@@ -67,11 +64,10 @@ public class TreeClassifier
     private Tree classifierTree;
 
     private static int splitNumber = 1;
-    private static String s = splitNumber >= 10 ? Integer.toString(splitNumber) : "0"+Integer.toString(splitNumber);  
-    private static String TRAINING_DATA_SOURCE = "src/data/connect-4-cv_training_data-10-"+s+".data";
-    private static String TESTING_DATA_SOURCE = "src/data/connect-4-cv_test_data-10-"+s+".data"; 
     private static int ATTRIBUTE_SIZE = 42;
-    private static int TRAINING_DATA_LENGTH = i == 10 ? 6762 : 6755;
+    private static String TRAINING_DATA_SOURCE = "src/data/connect4-cv_training_data-10-01.data";
+    private static String TESTING_DATA_SOURCE = "src/data/connect4-cv_test_data-10-01.data";
+    private static int TRAINING_DATA_LENGTH = splitNumber == 10 ? 6762 : 6755;
 
     /************************** ***************************/
     
@@ -81,8 +77,8 @@ public class TreeClassifier
     public TreeClassifier()
     {
 	
-	this.subsetsByAttribute = new subsetsByAttribute[ATTRIBUTE_SIZE][3];
-	this.subsetsByClass = new subsetsByClass[3];
+	this.subsetsByAttribute = new DataSubset[ATTRIBUTE_SIZE][3];
+	this.subsetsByClass = new DataSubset[3];
 
 	// initializes each element of subsetsByAttribute to an empty DataSubset
 	for (int i = 0 ; i < ATTRIBUTE_SIZE ; i++)
@@ -130,7 +126,7 @@ public class TreeClassifier
 		else if (row[i].equals("W"))
 		    subsetsByAttribute[i][2].addValue(lineCount++);
 		else
-		    throw(new RunTimeException("Invalid data!"));
+		    throw(new RuntimeException("Invalid data!"));
 	    }
 	}
     }
@@ -142,7 +138,7 @@ public class TreeClassifier
      * subsets constructed from data
      * takes as input the rows and columns currently under consideration
      */
-    public Tree makeTree(DataSubset examples, DataSubset attributes)
+    private Tree makeTree(DataSubset examples, DataSubset attributes)
     {
 	Tree decisionTree = new Tree(); // decision tree for this level of recursion
 
@@ -211,7 +207,8 @@ public class TreeClassifier
 	int currAttribute = 0;
 	Interval currInterval;
 	double currEntropy, minEntropy = 1;
-	int bestAttribute;
+	int bestAttribute = -1;
+	DataSubset subExamples;
 	// while loop to go over attributes and pick best according to entropy
 	while (attributeIter.hasNext()) 
 	{
@@ -232,7 +229,8 @@ public class TreeClassifier
 	    currEntropy = 0;
 	    for (int attrVal = 0 ; attrVal < 3; attrVal++)
 	    {
-		currEntropy += entropyOf(subsetsbyAttribute[currAttribute][attrVal]);
+		subExamples = subsetsByAttribute[currAttribute][attrVal];
+		currEntropy += subExamples.size() * entropyOf(subExamples) / examples.size();
 	    }
 	    
 	    // compare with Shannon entropy corresponding to other attributes, and maintain minimum
@@ -242,6 +240,9 @@ public class TreeClassifier
 		bestAttribute = currAttribute;
 	    }
 	}
+
+	if (bestAttribute < 0)
+	    throw (new RuntimeException ("Bad Algorithm!"));
 
 	// label root node by best attribute
 	decisionTree.setRootLabel(Integer.toString(bestAttribute));
@@ -254,11 +255,11 @@ public class TreeClassifier
 	String[] temp = {"draw","win","loss"};
 	for (int valA = 0 ; valA < 3; valA++)
 	{
-	    if (subsetsbyAttribute[bestAttribute][valA].isEmpty()) // trivial case
+	    if (subsetsByAttribute[bestAttribute][valA].isEmpty()) // trivial case
 		decisionTree.addSubtree(temp[valA], new Tree(majority));
 	    else // recursive case
 	    {
-		decisionTree.addSubtree(temp[valA], makeTree(examples.getIntersectionWith(subsetsbyAttribute[bestAttribute][valA]), attributes)); // new attributes does not have A, new examples all have A = valA
+		decisionTree.addSubtree(temp[valA], makeTree(examples.getIntersectionWith(subsetsByAttribute[bestAttribute][valA]), attributes)); // new attributes does not have A, new examples all have A = valA
 	    }
 	}
 	return decisionTree;
@@ -267,14 +268,19 @@ public class TreeClassifier
     /************************* *************************/   
     
     /**
+     * @throws IOException
      * @description obtains the classifier tree by
      * calling computeSubsets method
      * calling makeTree for the first time
      */
-    private void trainTreeClassifier()
+    public void trainTreeClassifier() throws IOException
     {
 	computeSubsets();
-	classifierTree = makeTree((new DataSubset().addRun(new Interval(0,TRAINING_DATA_LENGTH))), (new DataSubset().addRun(new Interval(0, ATTRIBUTE_SIZE))));
+	DataSubset exampleSubset = new DataSubset();
+	exampleSubset.addRun(new Interval(0, TRAINING_DATA_LENGTH));
+	DataSubset attributeSubset = new DataSubset();
+	exampleSubset.addRun(new Interval(0, ATTRIBUTE_SIZE));
+	classifierTree = makeTree(exampleSubset, attributeSubset);
     }
 
     /************************* *************************/   
@@ -286,12 +292,12 @@ public class TreeClassifier
     private String classify(String[] row, Tree subTreeHere)
     {
 	if (row.length != ATTRIBUTE_SIZE + 1)
-	    throw (new RunTimeException("Invalid data!"));
+	    throw (new RuntimeException("Invalid data!"));
 	if (subTreeHere.isLeaf())
-	    return Integer.parseInt(subTreeHere.RootLabel());
+	    return subTreeHere.getRootLabel();
 	int attributeHere = Integer.parseInt(subTreeHere.getRootLabel());
 	String valueHere = row[attributeHere];
-	Tree subTreeNext = subTreeHere.getChildren().get(valueHere);
+	Tree subTreeNext = subTreeHere.getSubtree(valueHere);
 	return classify(row, subTreeNext);
     }
     
@@ -302,7 +308,7 @@ public class TreeClassifier
      * @description tests the test data by repeatedly calling classify
      * using classifierTree
      */
-    private void testTreeClassifier() throws IOException
+    public void testTreeClassifier() throws IOException
     {
 	int total = 0;
 	int correct = 0;
@@ -396,9 +402,10 @@ public class TreeClassifier
     /************************* *************************/
     
     /**
+     * @throws IOException
      * @description Main method for calls to trainTree and testTree
      */
-    public static void main(String args[])
+    public static void main(String args[]) throws IOException
     {
 	TreeClassifier tc = new TreeClassifier();
 	tc.trainTreeClassifier();
