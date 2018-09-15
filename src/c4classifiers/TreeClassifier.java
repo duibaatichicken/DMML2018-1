@@ -32,18 +32,14 @@ import java.io.*;
 import ds.DataSubset;
 import ds.Interval;
 import ds.Tree;
+import util.StaticConstants;
 
 public class TreeClassifier
 {
-        // default data source
-	static final String DATA_SOURCE = "../data/connect-4-full.data"; // data source
-	static final int DATA_LENGTH = 67557; // number of rows
-	static final int CLASS_COLUMN = 42; // 43 columns. 42 attributes and 1 class.
-
-        // data source
-        private String dataSource = "";
-        private int dataLength = -1;
-        private int classColumn = -1;
+	// data source
+	private String dataSource = "";
+	private int dataLength = -1;
+	private int classColumn = -1;
 
 	/* MAIN METHOD
        calls ID3 on the entire dataset and all attributes
@@ -66,11 +62,11 @@ public class TreeClassifier
 		int temp = 0;
 	        try
 		{
-          		tc.setDataSource(args[0].isEmpty() ? DATA_SOURCE : args[0]);
+          		tc.setDataSource(args[0].isEmpty() ? StaticConstants.FULL_DATA_SOURCE : args[0]);
 			temp = Integer.parseInt(args[1]);
-			tc.setDataLength(temp < 0 ? DATA_LENGTH : temp);
+			tc.setDataLength(temp < 0 ? StaticConstants.DATA_LENGTH : temp);
 			temp = Integer.parseInt(args[2]);
-			tc.setClassColumn(temp < 0 ? CLASS_COLUMN : temp);
+			tc.setClassColumn(temp < 0 ? StaticConstants.CLASS_COLUMN : temp);
 		}
 		catch (ArrayIndexOutOfBoundsException e)
 		{
@@ -82,9 +78,9 @@ public class TreeClassifier
 		}
 		finally
 		{
-		    tc.setDataSource(tc.getDataSource().isEmpty() ? DATA_SOURCE : tc.getDataSource());
-		    tc.setDataLength(tc.getDataLength() < 0 ? DATA_LENGTH : tc.getDataLength());
-		    tc.setClassColumn(tc.getClassColumn() < 0 ? CLASS_COLUMN : tc.getClassColumn());
+		    tc.setDataSource(tc.getDataSource().isEmpty() ? StaticConstants.FULL_DATA_SOURCE : tc.getDataSource());
+		    tc.setDataLength(tc.getDataLength() < 0 ? StaticConstants.DATA_LENGTH : tc.getDataLength());
+		    tc.setClassColumn(tc.getClassColumn() < 0 ? StaticConstants.CLASS_COLUMN : tc.getClassColumn());
 		}
 		/* END of DATASET DEFINITION
 		 */
@@ -611,7 +607,6 @@ public class TreeClassifier
 				}
 				br.close();
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 			if(totalCount != 0) {

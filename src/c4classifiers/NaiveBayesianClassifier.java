@@ -1,11 +1,12 @@
 package c4classifiers;
 
 import java.io.BufferedReader;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+
+import util.StaticConstants;
 
 /**
  * This class contains a classifier for connect4 data
@@ -37,19 +38,6 @@ public class NaiveBayesianClassifier {
 	private Map<String, int[]> resultCountMap;
 	private int totalCount;
 
-	private static int ATTRIBUTE_SIZE = 42;
-	private static String[] TRAINING_DATA_SOURCE = {"src/data/connect4-cv_training_data-10-01.data", "src/data/connect4-cv_training_data-10-02.data",
-			"src/data/connect4-cv_training_data-10-03.data", "src/data/connect4-cv_training_data-10-04.data",
-			"src/data/connect4-cv_training_data-10-05.data", "src/data/connect4-cv_training_data-10-06.data",
-			"src/data/connect4-cv_training_data-10-07.data", "src/data/connect4-cv_training_data-10-08.data",
-			"src/data/connect4-cv_training_data-10-09.data", "src/data/connect4-cv_training_data-10-10.data"};
-
-	private static String[] TESTING_DATA_SOURCE = {"src/data/connect4-cv_test_data-10-01.data", "src/data/connect4-cv_test_data-10-02.data",
-			"src/data/connect4-cv_test_data-10-03.data", "src/data/connect4-cv_test_data-10-04.data",
-			"src/data/connect4-cv_test_data-10-05.data", "src/data/connect4-cv_test_data-10-06.data",
-			"src/data/connect4-cv_test_data-10-07.data", "src/data/connect4-cv_test_data-10-08.data",
-			"src/data/connect4-cv_test_data-10-09.data", "src/data/connect4-cv_test_data-10-10.data"};
-
 	/************************* *************************/
 
 	/**
@@ -59,15 +47,15 @@ public class NaiveBayesianClassifier {
 	public NaiveBayesianClassifier(int dataset) throws IOException {
 
 		this.countsGiven = new HashMap<String, int[][]>();
-		countsGiven.put("win", new int[ATTRIBUTE_SIZE][3]);
-		countsGiven.put("draw", new int[ATTRIBUTE_SIZE][3]);
-		countsGiven.put("loss", new int[ATTRIBUTE_SIZE][3]);
+		countsGiven.put("win", new int[StaticConstants.CLASS_COLUMN][3]);
+		countsGiven.put("draw", new int[StaticConstants.CLASS_COLUMN][3]);
+		countsGiven.put("loss", new int[StaticConstants.CLASS_COLUMN][3]);
 
 		// Create instances of probability arrays.
 		this.totalCount = 0;
 
 		// Initialise all probabilities to zero.
-		for(int i=0;i<ATTRIBUTE_SIZE;++i) {
+		for(int i=0;i<StaticConstants.CLASS_COLUMN;++i) {
 			for(int j=0;j<3;++j) {
 				this.countsGiven.get("win")[i][j] = 0;
 				this.countsGiven.get("draw")[i][j] = 0;
@@ -100,12 +88,12 @@ public class NaiveBayesianClassifier {
 	 * reading the data source file.
 	 */
 	private void buildCountsArrays(int dataset) throws IOException {
-		BufferedReader br = new BufferedReader(new FileReader(TRAINING_DATA_SOURCE[dataset]));
+		BufferedReader br = new BufferedReader(new FileReader(StaticConstants.TRAINING_DATA_SOURCE[dataset]));
 		String currLine = "";
 		while((currLine = br.readLine()) != null) {
 			String[] tmpArray = currLine.split(",");
-			String result = tmpArray[ATTRIBUTE_SIZE]; // "win", "draw", "loss"
-			for(int i=0;i<ATTRIBUTE_SIZE;++i) {
+			String result = tmpArray[StaticConstants.CLASS_COLUMN]; // "win", "draw", "loss"
+			for(int i=0;i<StaticConstants.CLASS_COLUMN;++i) {
 				if(tmpArray[i].equals("b")) {
 					countsGiven.get(result)[i][0]++;
 				} else if(tmpArray[i].equals("o")) {
@@ -153,7 +141,7 @@ public class NaiveBayesianClassifier {
 		String[] tmpArray = line.split(",");
 		double[] prob = new double[3];
 		prob[0] = 1; prob[1] = 1; prob[2] = 1;
-		for(int i=0;i<ATTRIBUTE_SIZE;++i) {
+		for(int i=0;i<StaticConstants.CLASS_COLUMN;++i) {
 			if(tmpArray[i].equals("b")) {
 				prob[0] *= getProbability(i, 0, "win");
 				prob[1] *= getProbability(i, 0, "draw");
@@ -202,7 +190,7 @@ public class NaiveBayesianClassifier {
 		String ans = "";
 		int correctCount = 0, totalCount = 0;
 
-		BufferedReader br = new BufferedReader(new FileReader(TESTING_DATA_SOURCE[dataset]));
+		BufferedReader br = new BufferedReader(new FileReader(StaticConstants.TESTING_DATA_SOURCE[dataset]));
 		String currLine = "";
 		while((currLine = br.readLine()) != null) {
 			String predictedResult = classify(currLine);
