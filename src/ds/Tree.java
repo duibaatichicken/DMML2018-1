@@ -115,7 +115,7 @@ public class Tree
     // setter of root label
     public void setRootLabel(String l)
     {
-	return this.root.setLabel(l);
+	this.root.setLabel(l);
     }
     /*SETTERS END*/
     // add a subtree at root

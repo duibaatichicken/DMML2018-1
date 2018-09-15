@@ -67,7 +67,7 @@ public class TreeClassifier
     private Tree classifierTree;
 
     private static int splitNumber = 1;
-    String s = splitNumber >= 10 ? Integer.toString(splitNumber) : "0"+Integer.toString(splitNumber);  
+    private static String s = splitNumber >= 10 ? Integer.toString(splitNumber) : "0"+Integer.toString(splitNumber);  
     private static String TRAINING_DATA_SOURCE = "src/data/connect-4-cv_training_data-10-"+s+".data";
     private static String TESTING_DATA_SOURCE = "src/data/connect-4-cv_test_data-10-"+s+".data"; 
     private static int ATTRIBUTE_SIZE = 42;
@@ -114,7 +114,7 @@ public class TreeClassifier
 	String[] row = new String[ATTRIBUTE_SIZE];
 	while((currLine = br.readLine()) != null)
 	{
-	    row = currLine.split(",")
+	    row = currLine.split(",");
 		if (row[ATTRIBUTE_SIZE].equals("draw"))
 		subsetsByClass[0].addValue(lineCount);
 	    else if (row[ATTRIBUTE_SIZE].equals("win"))
@@ -142,7 +142,7 @@ public class TreeClassifier
      * subsets constructed from data
      * takes as input the rows and columns currently under consideration
      */
-    public Tree makeTree(DataSubset[][] examples, DataSubset[] attributes)
+    public Tree makeTree(DataSubset examples, DataSubset attributes)
     {
 	Tree decisionTree = new Tree(); // decision tree for this level of recursion
 
@@ -153,7 +153,7 @@ public class TreeClassifier
 	DataSubset[] subsetsByClassNow = new DataSubset[3];
 	for (int cl = 0; cl < 3; cl++)
 	{
-	    subsetsByClassNow[i] = examples.getIntersectionWith(subsetsByClass[i]);
+	    subsetsByClassNow[cl] = examples.getIntersectionWith(subsetsByClass[cl]);
 	}
 	if (subsetsByClassNow[1].isEmpty())
 	{
@@ -181,7 +181,7 @@ public class TreeClassifier
 	 * Return leaf node labelled by majority class
 	 */
 	// compute majority outside, since it is also required in latter case
-	String majority = subsetsByClassNow[0].size() > subsetsByClassNow[1].size() && subsetsByClassNow[0].size() > subsetsByClassNow[2].size ? "draw" : (subsetsByClassNow[1].size() > subsetsByClassNow[2].size() ? "win" : "loss"); 
+	String majority = subsetsByClassNow[0].size() > subsetsByClassNow[1].size() && subsetsByClassNow[0].size() > subsetsByClassNow[2].size() ? "draw" : (subsetsByClassNow[1].size() > subsetsByClassNow[2].size() ? "win" : "loss"); 
 	if (attributes.isEmpty())
 	{
 	    decisionTree.setRootLabel(majority);
@@ -255,10 +255,10 @@ public class TreeClassifier
 	for (int valA = 0 ; valA < 3; valA++)
 	{
 	    if (subsetsbyAttribute[bestAttribute][valA].isEmpty()) // trivial case
-		decisionTree.addSubtree(temp[i], new Tree(majority));
+		decisionTree.addSubtree(temp[valA], new Tree(majority));
 	    else // recursive case
 	    {
-		decisionTree.addSubtree(temp[i].Integer.toString(valA), makeTree(examples.getIntersectionWith(subsetsbyAttribute[bestAttribute][valA]), attributes)); // new attributes does not have A, new examples all have A = valA
+		decisionTree.addSubtree(temp[valA], makeTree(examples.getIntersectionWith(subsetsbyAttribute[bestAttribute][valA]), attributes)); // new attributes does not have A, new examples all have A = valA
 	    }
 	}
 	return decisionTree;
@@ -286,7 +286,7 @@ public class TreeClassifier
     private String classify(String[] row, Tree subTreeHere)
     {
 	if (row.length != ATTRIBUTE_SIZE + 1)
-	    throw (new RunTimeException e ("Invalid data!"));
+	    throw (new RunTimeException("Invalid data!"));
 	if (subTreeHere.isLeaf())
 	    return Integer.parseInt(subTreeHere.RootLabel());
 	int attributeHere = Integer.parseInt(subTreeHere.getRootLabel());
@@ -308,7 +308,7 @@ public class TreeClassifier
 	int correct = 0;
 	BufferedReader br = new BufferedReader (new FileReader (TESTING_DATA_SOURCE));
 	String currLine = "";
-	String[] row = new String[ATTRIBUTE_SIZE+1]
+	String[] row = new String[ATTRIBUTE_SIZE+1];
 	while ((currLine = br.readLine()) != null)
 	{
 	    row = currLine.split(",");
@@ -400,8 +400,9 @@ public class TreeClassifier
      */
     public static void main(String args[])
     {
-	trainTreeClassifier();
-	testTreeClassifier();
+	TreeClassifier tc = new TreeClassifier();
+	tc.trainTreeClassifier();
+	tc.testTreeClassifier();
     }
 
 }
