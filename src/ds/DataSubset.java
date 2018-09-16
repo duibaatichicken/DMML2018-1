@@ -1,7 +1,9 @@
 package ds;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 
 /**
  * Contains a linked list to identify a subset of
@@ -19,7 +21,7 @@ import java.util.LinkedList;
  */
 
 public class DataSubset extends LinkedList<Interval> {
-	
+
 	private static final long serialVersionUID = 1L;
 
 	/**
@@ -28,9 +30,9 @@ public class DataSubset extends LinkedList<Interval> {
 	public DataSubset() {
 		super();
 	}
-	
+
 	/************************* *************************/
-	
+
 	/**
 	 * @description Returns the count of elements in the subset.
 	 */
@@ -42,15 +44,15 @@ public class DataSubset extends LinkedList<Interval> {
 		return ans;
 	}
 
-        /************************* *************************/
-	
+	/************************* *************************/
+
 	/**
 	 * @description Redefines emptiness to be count = 0
 	 */
-        public boolean isEmpty()
-        {
-	    return this.getCount() == 0;
-        }
+	public boolean isEmpty()
+	{
+		return this.getCount() == 0;
+	}
 	/* (non-Javadoc)
 	 * @see java.util.AbstractCollection#toString()
 	 */
@@ -63,18 +65,18 @@ public class DataSubset extends LinkedList<Interval> {
 		ans.append("NULL");
 		return ans.toString();
 	}
-	
+
 	/************************* *************************/
-	
+
 	/**
 	 * @description Adds specified value to the list.
 	 */
 	public void addValue(int toAdd) {
 		this.addRun(new Interval(toAdd, toAdd+1));
 	}
-	
+
 	/************************* *************************/
-	
+
 	/**
 	 * @description Adds specified interval to the list.
 	 */
@@ -90,7 +92,7 @@ public class DataSubset extends LinkedList<Interval> {
 			}
 		}
 		if(!dropInterval) {
-			
+
 			// Drop intervals contained in toAdd.
 			Iterator<Interval> iter1 = this.iterator();
 			while(iter1.hasNext()) {
@@ -101,7 +103,7 @@ public class DataSubset extends LinkedList<Interval> {
 			if(this.size() == 0) {
 				this.add(toAdd);
 			} 
-			
+
 			// Find out number of intersecting intervals.
 			int intersections = 0;
 			Iterator<Interval> iter2 = this.iterator();
@@ -110,7 +112,7 @@ public class DataSubset extends LinkedList<Interval> {
 					intersections++;
 				}
 			}
-			
+
 			// Merge intervals
 			if(intersections == 0) {
 				boolean toAppend = true;
@@ -124,7 +126,7 @@ public class DataSubset extends LinkedList<Interval> {
 				if(toAppend) {
 					this.addLast(toAdd);
 				}
-				
+
 			} else if(intersections == 1) {
 				for(int i=0;i<this.size();++i) {
 					if(this.get(i).intersects(toAdd)) {
@@ -147,23 +149,23 @@ public class DataSubset extends LinkedList<Interval> {
 			}
 		}
 	}
-	
+
 	/************************* *************************/
-	
+
 	/**
 	 * @description Removes specified value from the list.
 	 */
 	public void removeValue(int toRemove) {
 		this.removeRun(new Interval(toRemove, toRemove+1));
 	}
-	
+
 	/************************* *************************/
-	
+
 	/**
 	 * @description Removes specified interval from the list.
 	 */
 	public void removeRun(Interval toRemove) {
-		
+
 		// Prune interval by given interval
 		for(int i=0;i<this.size();++i) {
 			Interval tmpToRemove = new Interval(toRemove.getStart(), toRemove.getEnd());
@@ -199,127 +201,182 @@ public class DataSubset extends LinkedList<Interval> {
 		}
 	}
 
-        /************************* *************************/
-	
+	/************************* *************************/
+
+	/**
+	 * @description Return the points of interest
+	 */
+	private List<PointOfInterest> getPointsOfInterest(int id) {
+		List<PointOfInterest> ans = new ArrayList<PointOfInterest>();
+		Iterator<Interval> iter = this.iterator();
+		while(iter.hasNext()) {
+			Interval currInterval = iter.next();
+			ans.add(new PointOfInterest(currInterval.getStart(), true, id));
+			ans.add(new PointOfInterest(currInterval.getEnd(), false, id));
+		}
+		return ans;
+	}
+
+	/************************* *************************/
+
 	/**
 	 * @description Finds the given value in the subsets
 	 */
-        /*public DataSubset findValue(int toFind){
+	/*public DataSubset findValue(int toFind){
 	        boolean toLowerBound = true;
 		boolean toUpperBound = false;
 		while (toLowerBound){
 		    // TODO : Write code for finding a value.        
 		    }*/
-	
+
 	/************************* *************************/
-	
+
 	/**
 	 * @description Returns the intersection of the this subset
 	 * with the subset given by ds.
 	 */
 	public DataSubset getIntersectionWith(DataSubset ds) {
 		DataSubset ans = new DataSubset();
-		Iterator<Interval> iter1 = this.iterator();
-		Iterator<Interval> iter2 = ds.iterator();
-		boolean in1 = false;
-		boolean in2 = false;
-		Interval curr1 = new Interval(-1,-1);
-		Interval curr2 = new Interval(-1,-1);
-		while (true)
-		{
-		    if (!in1 && !iter1.hasNext())
-			break;
-		    else if (!in2 && !iter2.hasNext())
-			break;
-		    while (!in1 && !in2 && iter1.hasNext() && iter2.hasNext())
-		    {
-			curr1 = iter1.next();
-			curr2 = iter2.next();
-			if (curr1.intersects(curr2))
-		        {
-			    ans.addRun(new Interval(Math.max(curr1.getStart(), curr2.getStart()), Math.min(curr1.getEnd(), curr2.getEnd())));
-			    if (curr1.getEnd() > curr2.getEnd())
-				in1 = true;
-			    else if (curr2.getEnd() > curr1.getEnd())
-				in2 = true;
+		
+		// Get a global transcript of all points of interest in order.
+		List<PointOfInterest> poi1 = this.getPointsOfInterest(1);
+		List<PointOfInterest> poi2 = ds.getPointsOfInterest(2);
+		List<PointOfInterest> transcript = new ArrayList<PointOfInterest>();
+		int p1 = 0, p2 = 0;
+		int size1 = poi1.size(), size2 = poi2.size();
+		while(true) {
+			if(p1 < size1) {
+				if(p2 < size2) {
+					if(poi1.get(p1).getValue() < poi2.get(p2).getValue()) {
+						transcript.add(poi1.get(p1++));
+					} else if(poi1.get(p1).getValue() > poi2.get(p2).getValue()) {
+						transcript.add(poi2.get(p2++));
+					} else {
+						transcript.add(poi1.get(p1++));
+						transcript.add(poi2.get(p2++));
+					}
+				} else {
+					transcript.add(poi1.get(p1++));
+				}
+			} else {
+				if(p2 < size2) {
+					transcript.add(poi2.get(p2++));
+				} else {
+					break;
+				}
 			}
-			else if (curr1.getStart() >= curr2.getEnd())
-			    in1 = true;
-			else // curr1 preceeds curr2
-			    in2 = true;
-		    }
-		    while (!in1 && in2 && iter1.hasNext())
-		    {
-			curr1 = iter1.next();
-			if (curr1.intersects(curr2))
-		        {
-			    ans.addRun(new Interval(Math.max(curr1.getStart(), curr2.getStart()), Math.min(curr1.getEnd(), curr2.getEnd())));
-			    if (curr1.getEnd() > curr2.getEnd())
-			    {
-				in1 = true;
-				in2 = false;
-			    }
-			    else if (curr1.getEnd() == curr2.getEnd())
-				in2 = false;
+		}
+		
+		// Decide what intervals to add to intersection based in transcript.
+		boolean in1 = false, in2 = false;
+		for(int i=0;i<transcript.size();++i) {
+			PointOfInterest currPoi = transcript.get(i);
+			PointOfInterest nextPoi = null;
+			if(i < transcript.size()-1) {
+				nextPoi = transcript.get(i+1);
 			}
-			else if (curr1.getStart() >= curr2.getEnd())
-			{
-			    in1 = true;
-			    in2 = false;
+			if(currPoi.isStart()) {
+				if(currPoi.getId() == 1) {
+					in1 = true;
+				} else {
+					in2 = true;
+				}
+			} else {
+				if(currPoi.getId() == 1) {
+					in1 = false;
+				} else {
+					in2 = false;
+				}
 			}
-		    }
-		    while (in1 && !in2 && iter2.hasNext())
-		    {
-			curr2 = iter2.next();
-			if (curr2.intersects(curr1))
-			{
-			    ans.addRun(new Interval(Math.max(curr2.getStart(), curr1.getStart()), Math.min(curr2.getEnd(),curr1.getEnd())));
-			    if (curr2.getEnd() > curr1.getEnd())
-			    {
-				in2 = true;
-				in1 = false;
-			    }
-			    else if (curr1.getEnd() == curr2.getEnd())
-				in1 = false;
+			if(in1 && in2) {
+				ans.add(new Interval(currPoi.getValue(), nextPoi.getValue()));
 			}
-			else if (curr2.getStart() >= curr1.getEnd())
-			{
-			    in2 = true;
-			    in1 = false;
-			}
-		    }
-		    if (in1 && in2)
-			throw (new RuntimeException ("Bad algorithm!"));
 		}
 		return ans;
+
+		//		while (true)
+		//		{
+		//		    if (!in1 && !iter1.hasNext())
+		//			break;
+		//		    else if (!in2 && !iter2.hasNext())
+		//			break;
+		//		    while (!in1 && !in2 && iter1.hasNext() && iter2.hasNext())
+		//		    {
+		//			curr1 = iter1.next();
+		//			curr2 = iter2.next();
+		//			if (curr1.intersects(curr2))
+		//		        {
+		//			    ans.addRun(new Interval(Math.max(curr1.getStart(), curr2.getStart()), Math.min(curr1.getEnd(), curr2.getEnd())));
+		//			    if (curr1.getEnd() > curr2.getEnd())
+		//				in1 = true;
+		//			    else if (curr2.getEnd() > curr1.getEnd())
+		//				in2 = true;
+		//			}
+		//			else if (curr1.getStart() >= curr2.getEnd())
+		//			    in1 = true;
+		//			else // curr1 preceeds curr2
+		//			    in2 = true;
+		//		    }
+		//		    while (!in1 && in2 && iter1.hasNext())
+		//		    {
+		//			curr1 = iter1.next();
+		//			if (curr1.intersects(curr2))
+		//		        {
+		//			    ans.addRun(new Interval(Math.max(curr1.getStart(), curr2.getStart()), Math.min(curr1.getEnd(), curr2.getEnd())));
+		//			    if (curr1.getEnd() > curr2.getEnd())
+		//			    {
+		//				in1 = true;
+		//				in2 = false;
+		//			    }
+		//			    else if (curr1.getEnd() == curr2.getEnd())
+		//				in2 = false;
+		//			}
+		//			else if (curr1.getStart() >= curr2.getEnd())
+		//			{
+		//			    in1 = true;
+		//			    in2 = false;
+		//			}
+		//		    }
+		//		    while (in1 && !in2 && iter2.hasNext())
+		//		    {
+		//			curr2 = iter2.next();
+		//			if (curr2.intersects(curr1))
+		//			{
+		//			    ans.addRun(new Interval(Math.max(curr2.getStart(), curr1.getStart()), Math.min(curr2.getEnd(),curr1.getEnd())));
+		//			    if (curr2.getEnd() > curr1.getEnd())
+		//			    {
+		//				in2 = true;
+		//				in1 = false;
+		//			    }
+		//			    else if (curr1.getEnd() == curr2.getEnd())
+		//				in1 = false;
+		//			}
+		//			else if (curr2.getStart() >= curr1.getEnd())
+		//			{
+		//			    in2 = true;
+		//			    in1 = false;
+		//			}
+		//		    }
+		//		    if (in1 && in2)
+		//			throw (new RuntimeException ("Bad algorithm!"));
+		//		}
+		//		return ans;
 	}
-	
+
 	/************************* *************************/
-	
+
 	/**
 	 * @description Main function for local testing.
 	 */
 	public static void main(String[] args) {
-		DataSubset ds = new DataSubset();
-		ds.addRun(new Interval(100, 500));
-		System.out.println(ds);
-		ds.removeRun(new Interval(150, 200));
-		System.out.println(ds);
-		ds.removeRun(new Interval(120, 140));
-		System.out.println(ds);
-		ds.removeRun(new Interval(143, 147));
-		System.out.println(ds);
-		ds.removeRun(new Interval(250, 300));
-		System.out.println(ds);
-//		Random prng = new Random();
-//		for(int i=0;i<10;++i) {
-//			int a = prng.nextInt(30);
-//			int b = prng.nextInt(30);
-//			Interval k = new Interval(Math.min(a, b), Math.max(a, b));
-//			System.out.println("+" + k);
-//			ds.addRun(k);
-//			System.out.println(ds);
-//			System.out.println();
-//		}
+		DataSubset ds1 = new DataSubset(), ds2 = new DataSubset();
+		ds1.addRun(new Interval(100, 500));
+		ds1.addRun(new Interval(700, 900));
+		ds2.addRun(new Interval(200, 600));
+		ds2.addRun(new Interval(800, 1200));
+//		System.out.println(ds1.getPointsOfInterest(1));
+//		System.out.println(ds2.getPointsOfInterest(2));
+		DataSubset dsint = ds1.getIntersectionWith(ds2);
+		System.out.println(dsint);
 	}
 }
