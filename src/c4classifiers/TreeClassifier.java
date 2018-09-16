@@ -100,6 +100,39 @@ public class TreeClassifier
 	 * @description 
 	 */
 	public void computeSubsets2(int dataset) throws IOException {
+		BufferedReader br = new BufferedReader(new FileReader(StaticConstants.TRAINING_DATA_SOURCE[dataset]));
+		String currLine = "";
+		String[] lastValues = new String[StaticConstants.CLASS_COLUMN + 1];
+		String[] values = new String[StaticConstants.CLASS_COLUMN + 1];
+		for(int i=0;i<StaticConstants.CLASS_COLUMN;++i) {
+			lastValues[i] = "";
+			values[i] = "";
+		}
+		int[] tmpStarts = new int[StaticConstants.CLASS_COLUMN];
+		int[] tmpEnds = new int[StaticConstants.CLASS_COLUMN];
+		for(int j=0;j<StaticConstants.CLASS_COLUMN;++j) {
+			tmpStarts[j] = 1;
+			tmpEnds[j] = 2;
+		}
+		while((currLine = br.readLine()) != null) {
+			if(lastValues[0].equals("")) {
+				lastValues = currLine.split(",");
+			} else {
+				values = currLine.split(",");
+				for(int k=0;k<StaticConstants.CLASS_COLUMN;++k) {
+					if(lastValues[k].equals(values[k])) {
+						tmpEnds[k]++;
+					} else {
+						subsetsByAttribute[k][HelperFunctionsDazzle.attrToInt(lastValues[k])]
+								.add(new Interval(tmpStarts[k], tmpEnds[k]));
+						tmpStarts[k] = tmpEnds[k];
+						tmpEnds[k]++;
+					}
+				}
+				lastValues = values;
+			}
+		}
+		br.close();
 	}
 
 
