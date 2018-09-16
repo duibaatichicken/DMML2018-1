@@ -97,7 +97,11 @@ public class TreeClassifier
 
 	/**
 	 * @throws IOException 
-	 * @description 
+	 * @description Computes two arrays subsetsByAttribute indexed
+	 * by Attributes(42) x Positions(3) such that the [i][j]th
+	 * element is the DataSubset [A_i = p_j] subsetsByClass indexed
+	 * by Outcomes(3) such that the [i]th element is the DataSubset
+	 * [Class = c_i].
 	 */
 	public void computeSubsets2(int dataset) throws IOException {
 		BufferedReader br = new BufferedReader(new FileReader(StaticConstants.TRAINING_DATA_SOURCE[dataset]));
@@ -151,11 +155,7 @@ public class TreeClassifier
 
 	/**
 	 * @throws IOException
-	 * @description Computes two arrays
-	 * subsetsByAttribute indexed by Attributes(42) x Positions(3)
-	 * Such that the [i][j]th element is the DataSubset [A_i = p_j]
-	 * subsetsByClass indexed by Outcomes(3)
-	 * Such that the [i]th element is the DataSubset [Class = c_i]
+	 * @description 
 	 */
 //	private void computeSubsets1(int dataset) throws IOException
 //	{

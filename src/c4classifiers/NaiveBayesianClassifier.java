@@ -231,7 +231,8 @@ public class NaiveBayesianClassifier {
 				e.printStackTrace();
 			}
 		}
-		ans = String.valueOf(correctCount) + " / " + String.valueOf(totalCount);
+		ans += "Results of Data set " + (dataset+1) + ": ";
+		ans += String.valueOf(correctCount) + " / " + String.valueOf(totalCount);
 		return ans;
 	}
 
