@@ -362,6 +362,23 @@ public class DataSubset extends LinkedList<Interval> {
 		//		}
 		//		return ans;
 	}
+	
+	/************************* *************************/
+	
+	/**
+	 * @description Return the first few terms in the list.
+	 */
+	public String printHead() {
+		StringBuilder ans = new StringBuilder();
+		Iterator<Interval> iter = this.iterator();
+		int count = 0;
+		while(iter.hasNext() && count < 7) {
+			ans.append(iter.next() + " -> ");
+			count++;
+		}
+		ans.append("...");
+		return ans.toString();
+	}
 
 	/************************* *************************/
 
