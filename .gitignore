@@ -5,3 +5,5 @@
 /.classpath
 /.project
 *.swp
+*.py
+*.py~
