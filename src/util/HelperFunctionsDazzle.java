@@ -8,11 +8,11 @@ public class HelperFunctionsDazzle
      */
     public static int attrToInt(String attr)
     {
-	if (attr.equals("b"))
+	if (attr.equals("b") || attr.equals("draw"))
 	    return 0;
-	else if (attr.equals("o"))
+	else if (attr.equals("o") || attr.equals("win"))
 	    return 1;
-	else if (attr.equals("x"))
+	else if (attr.equals("x") || attr.equals("loss"))
 	    return 2;
 	else
 	    throw(new RuntimeException("Invalid attribute value"));

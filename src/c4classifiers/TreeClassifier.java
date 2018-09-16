@@ -104,13 +104,13 @@ public class TreeClassifier
 		String currLine = "";
 		String[] lastValues = new String[StaticConstants.CLASS_COLUMN + 1];
 		String[] values = new String[StaticConstants.CLASS_COLUMN + 1];
-		for(int i=0;i<StaticConstants.CLASS_COLUMN;++i) {
+		for(int i=0;i<StaticConstants.CLASS_COLUMN+1;++i) {
 			lastValues[i] = "";
 			values[i] = "";
 		}
-		int[] tmpStarts = new int[StaticConstants.CLASS_COLUMN];
-		int[] tmpEnds = new int[StaticConstants.CLASS_COLUMN];
-		for(int j=0;j<StaticConstants.CLASS_COLUMN;++j) {
+		int[] tmpStarts = new int[StaticConstants.CLASS_COLUMN+1];
+		int[] tmpEnds = new int[StaticConstants.CLASS_COLUMN+1];
+		for(int j=0;j<StaticConstants.CLASS_COLUMN+1;++j) {
 			tmpStarts[j] = 1;
 			tmpEnds[j] = 2;
 		}
@@ -119,14 +119,25 @@ public class TreeClassifier
 				lastValues = currLine.split(",");
 			} else {
 				values = currLine.split(",");
-				for(int k=0;k<StaticConstants.CLASS_COLUMN;++k) {
-					if(lastValues[k].equals(values[k])) {
-						tmpEnds[k]++;
+				for(int k=0;k<StaticConstants.CLASS_COLUMN+1;++k) {
+					if(k < StaticConstants.CLASS_COLUMN) {
+						if(lastValues[k].equals(values[k])) {
+							tmpEnds[k]++;
+						} else {
+							subsetsByAttribute[k][HelperFunctionsDazzle.attrToInt(lastValues[k])]
+									.add(new Interval(tmpStarts[k], tmpEnds[k]));
+							tmpStarts[k] = tmpEnds[k];
+							tmpEnds[k]++;
+						}
 					} else {
-						subsetsByAttribute[k][HelperFunctionsDazzle.attrToInt(lastValues[k])]
-								.add(new Interval(tmpStarts[k], tmpEnds[k]));
-						tmpStarts[k] = tmpEnds[k];
-						tmpEnds[k]++;
+						if(lastValues[k].equals(values[k])) {
+							tmpEnds[k]++;
+						} else {
+							subsetsByClass[HelperFunctionsDazzle.attrToInt(lastValues[k])]
+									.add(new Interval(tmpStarts[k], tmpEnds[k]));
+							tmpStarts[k] = tmpEnds[k];
+							tmpEnds[k]++;
+						}
 					}
 				}
 				lastValues = values;
@@ -146,70 +157,70 @@ public class TreeClassifier
 	 * subsetsByClass indexed by Outcomes(3)
 	 * Such that the [i]th element is the DataSubset [Class = c_i]
 	 */
-	private void computeSubsets1(int dataset) throws IOException
-	{
-		BufferedReader br = new BufferedReader (new FileReader (StaticConstants.TRAINING_DATA_SOURCE[dataset]));
-		String currLine = "";
-		int lineCount = 0;
-		String[] lastRow = new String[StaticConstants.CLASS_COLUMN + 1];
-		Interval[] currRun = new Interval[StaticConstants.CLASS_COLUMN + 1];
-		for (int i = 0; i <= StaticConstants.CLASS_COLUMN; i++) // initialize
-		{
-			lastRow[i] = "";
-			currRun[i] = new Interval(0,1);
-		}
-		/*INTERFERING testline System.out.print(br.readLine());*/
-		while((currLine = br.readLine()) != null) // PANDA HALP
-		{
-			/*testline System.out.println(currLine);*/
-			/*testline if (lineCount >= 67557) break; */
-			String[] row = currLine.split(",");
-			for (int attr = 0; attr < StaticConstants.CLASS_COLUMN; attr++) // update attribute runs
-			{
-				if (row[attr].equals(lastRow[attr]))
-					currRun[attr].setEnd(lineCount+1);
-				else
-				{
-					try // this solves the very first case, where the attribute value is just initiazlied to ""
-					{
-						subsetsByAttribute[attr][HelperFunctionsDazzle.attrToInt(lastRow[attr])].addRun(currRun[attr]);
-					}
-					catch (RuntimeException e)
-					{
-						//pass
-					}
-					finally
-					{
-						lastRow[attr] = row[attr];
-						currRun[attr].setStart(lineCount);
-						currRun[attr].setEnd(lineCount+1);
-					}
-				}
-			}
-			// update class runs
-			if (row[StaticConstants.CLASS_COLUMN].equals(lastRow[StaticConstants.CLASS_COLUMN]))
-				currRun[StaticConstants.CLASS_COLUMN].setEnd(lineCount+1);
-			else
-			{
-				try // this solves the very first case, where the class value is just initialized to ""
-				{
-					subsetsByClass[HelperFunctionsDazzle.classToInt(lastRow[StaticConstants.CLASS_COLUMN])].addRun(currRun[StaticConstants.CLASS_COLUMN]);
-				}
-				catch (RuntimeException e)
-				{
-					//pass
-				}
-				finally
-				{
-					lastRow[StaticConstants.CLASS_COLUMN] = row[StaticConstants.CLASS_COLUMN];
-					currRun[StaticConstants.CLASS_COLUMN].setStart(lineCount);
-					currRun[StaticConstants.CLASS_COLUMN].setEnd(lineCount+1);
-				}
-			}
-			lineCount++;
-		}
-		br.close();
-	}
+//	private void computeSubsets1(int dataset) throws IOException
+//	{
+//		BufferedReader br = new BufferedReader (new FileReader (StaticConstants.TRAINING_DATA_SOURCE[dataset]));
+//		String currLine = "";
+//		int lineCount = 0;
+//		String[] lastRow = new String[StaticConstants.CLASS_COLUMN + 1];
+//		Interval[] currRun = new Interval[StaticConstants.CLASS_COLUMN + 1];
+//		for (int i = 0; i <= StaticConstants.CLASS_COLUMN; i++) // initialize
+//		{
+//			lastRow[i] = "";
+//			currRun[i] = new Interval(0,1);
+//		}
+//		/*INTERFERING testline System.out.print(br.readLine());*/
+//		while((currLine = br.readLine()) != null) // PANDA HALP
+//		{
+//			/*testline System.out.println(currLine);*/
+//			/*testline if (lineCount >= 67557) break; */
+//			String[] row = currLine.split(",");
+//			for (int attr = 0; attr < StaticConstants.CLASS_COLUMN; attr++) // update attribute runs
+//			{
+//				if (row[attr].equals(lastRow[attr]))
+//					currRun[attr].setEnd(lineCount+1);
+//				else
+//				{
+//					try // this solves the very first case, where the attribute value is just initiazlied to ""
+//					{
+//						subsetsByAttribute[attr][HelperFunctionsDazzle.attrToInt(lastRow[attr])].addRun(currRun[attr]);
+//					}
+//					catch (RuntimeException e)
+//					{
+//						//pass
+//					}
+//					finally
+//					{
+//						lastRow[attr] = row[attr];
+//						currRun[attr].setStart(lineCount);
+//						currRun[attr].setEnd(lineCount+1);
+//					}
+//				}
+//			}
+//			// update class runs
+//			if (row[StaticConstants.CLASS_COLUMN].equals(lastRow[StaticConstants.CLASS_COLUMN]))
+//				currRun[StaticConstants.CLASS_COLUMN].setEnd(lineCount+1);
+//			else
+//			{
+//				try // this solves the very first case, where the class value is just initialized to ""
+//				{
+//					subsetsByClass[HelperFunctionsDazzle.classToInt(lastRow[StaticConstants.CLASS_COLUMN])].addRun(currRun[StaticConstants.CLASS_COLUMN]);
+//				}
+//				catch (RuntimeException e)
+//				{
+//					//pass
+//				}
+//				finally
+//				{
+//					lastRow[StaticConstants.CLASS_COLUMN] = row[StaticConstants.CLASS_COLUMN];
+//					currRun[StaticConstants.CLASS_COLUMN].setStart(lineCount);
+//					currRun[StaticConstants.CLASS_COLUMN].setEnd(lineCount+1);
+//				}
+//			}
+//			lineCount++;
+//		}
+//		br.close();
+//	}
 
 	/************************* *************************/   
 
@@ -536,20 +547,20 @@ public class TreeClassifier
 	 */
 	public static void main(String args[]) throws IOException
 	{
-		TreeClassifier tc1 = new TreeClassifier();
+//		TreeClassifier tc1 = new TreeClassifier();
+//		tc1.computeSubsets1(0);
+//		System.out.println(tc1.subsetsByAttribute[0][0]);
+//		System.out.println(tc1.subsetsByAttribute[0][1]);
+//		System.out.println(tc1.subsetsByAttribute[0][2]);
+
 		TreeClassifier tc2 = new TreeClassifier();
-
-		tc1.computeSubsets1(0);
 		tc2.computeSubsets2(0);
-		//		System.out.println(tc1.subsetsByAttribute[0][0]);
-		//		System.out.println(tc1.subsetsByAttribute[0][1]);
-		//		System.out.println(tc1.subsetsByAttribute[0][2]);
-		System.out.println(tc2.subsetsByAttribute[0][0].printHead());
-		System.out.println(tc2.subsetsByAttribute[0][1].printHead());
-		System.out.println(tc2.subsetsByAttribute[0][2].printHead());
+		System.out.println(tc2.subsetsByAttribute[3][0].printHead());
+		System.out.println(tc2.subsetsByAttribute[3][1].printHead());
+		System.out.println(tc2.subsetsByAttribute[3][2].printHead());
+		tc2.tenfoldValidation();
 
-
-		//		float crossAvg = tenfoldValidation();
+//		float crossAvg = tenfoldValidation();
 	}
 
 }
