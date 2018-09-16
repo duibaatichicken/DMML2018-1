@@ -157,70 +157,70 @@ public class TreeClassifier
 	 * @throws IOException
 	 * @description 
 	 */
-//	private void computeSubsets1(int dataset) throws IOException
-//	{
-//		BufferedReader br = new BufferedReader (new FileReader (StaticConstants.TRAINING_DATA_SOURCE[dataset]));
-//		String currLine = "";
-//		int lineCount = 0;
-//		String[] lastRow = new String[StaticConstants.CLASS_COLUMN + 1];
-//		Interval[] currRun = new Interval[StaticConstants.CLASS_COLUMN + 1];
-//		for (int i = 0; i <= StaticConstants.CLASS_COLUMN; i++) // initialize
-//		{
-//			lastRow[i] = "";
-//			currRun[i] = new Interval(0,1);
-//		}
-//		/*INTERFERING testline System.out.print(br.readLine());*/
-//		while((currLine = br.readLine()) != null) // PANDA HALP
-//		{
-//			/*testline System.out.println(currLine);*/
-//			/*testline if (lineCount >= 67557) break; */
-//			String[] row = currLine.split(",");
-//			for (int attr = 0; attr < StaticConstants.CLASS_COLUMN; attr++) // update attribute runs
-//			{
-//				if (row[attr].equals(lastRow[attr]))
-//					currRun[attr].setEnd(lineCount+1);
-//				else
-//				{
-//					try // this solves the very first case, where the attribute value is just initiazlied to ""
-//					{
-//						subsetsByAttribute[attr][HelperFunctionsDazzle.attrToInt(lastRow[attr])].addRun(currRun[attr]);
-//					}
-//					catch (RuntimeException e)
-//					{
-//						//pass
-//					}
-//					finally
-//					{
-//						lastRow[attr] = row[attr];
-//						currRun[attr].setStart(lineCount);
-//						currRun[attr].setEnd(lineCount+1);
-//					}
-//				}
-//			}
-//			// update class runs
-//			if (row[StaticConstants.CLASS_COLUMN].equals(lastRow[StaticConstants.CLASS_COLUMN]))
-//				currRun[StaticConstants.CLASS_COLUMN].setEnd(lineCount+1);
-//			else
-//			{
-//				try // this solves the very first case, where the class value is just initialized to ""
-//				{
-//					subsetsByClass[HelperFunctionsDazzle.classToInt(lastRow[StaticConstants.CLASS_COLUMN])].addRun(currRun[StaticConstants.CLASS_COLUMN]);
-//				}
-//				catch (RuntimeException e)
-//				{
-//					//pass
-//				}
-//				finally
-//				{
-//					lastRow[StaticConstants.CLASS_COLUMN] = row[StaticConstants.CLASS_COLUMN];
-//					currRun[StaticConstants.CLASS_COLUMN].setStart(lineCount);
-//					currRun[StaticConstants.CLASS_COLUMN].setEnd(lineCount+1);
-//				}
-//			}
-//			lineCount++;
-//		}
-//		br.close();
-//	}
+	//	private void computeSubsets1(int dataset) throws IOException
+	//	{
+	//		BufferedReader br = new BufferedReader (new FileReader (StaticConstants.TRAINING_DATA_SOURCE[dataset]));
+	//		String currLine = "";
+	//		int lineCount = 0;
+	//		String[] lastRow = new String[StaticConstants.CLASS_COLUMN + 1];
+	//		Interval[] currRun = new Interval[StaticConstants.CLASS_COLUMN + 1];
+	//		for (int i = 0; i <= StaticConstants.CLASS_COLUMN; i++) // initialize
+	//		{
+	//			lastRow[i] = "";
+	//			currRun[i] = new Interval(0,1);
+	//		}
+	//		/*INTERFERING testline System.out.print(br.readLine());*/
+	//		while((currLine = br.readLine()) != null) // PANDA HALP
+	//		{
+	//			/*testline System.out.println(currLine);*/
+	//			/*testline if (lineCount >= 67557) break; */
+	//			String[] row = currLine.split(",");
+	//			for (int attr = 0; attr < StaticConstants.CLASS_COLUMN; attr++) // update attribute runs
+	//			{
+	//				if (row[attr].equals(lastRow[attr]))
+	//					currRun[attr].setEnd(lineCount+1);
+	//				else
+	//				{
+	//					try // this solves the very first case, where the attribute value is just initiazlied to ""
+	//					{
+	//						subsetsByAttribute[attr][HelperFunctionsDazzle.attrToInt(lastRow[attr])].addRun(currRun[attr]);
+	//					}
+	//					catch (RuntimeException e)
+	//					{
+	//						//pass
+	//					}
+	//					finally
+	//					{
+	//						lastRow[attr] = row[attr];
+	//						currRun[attr].setStart(lineCount);
+	//						currRun[attr].setEnd(lineCount+1);
+	//					}
+	//				}
+	//			}
+	//			// update class runs
+	//			if (row[StaticConstants.CLASS_COLUMN].equals(lastRow[StaticConstants.CLASS_COLUMN]))
+	//				currRun[StaticConstants.CLASS_COLUMN].setEnd(lineCount+1);
+	//			else
+	//			{
+	//				try // this solves the very first case, where the class value is just initialized to ""
+	//				{
+	//					subsetsByClass[HelperFunctionsDazzle.classToInt(lastRow[StaticConstants.CLASS_COLUMN])].addRun(currRun[StaticConstants.CLASS_COLUMN]);
+	//				}
+	//				catch (RuntimeException e)
+	//				{
+	//					//pass
+	//				}
+	//				finally
+	//				{
+	//					lastRow[StaticConstants.CLASS_COLUMN] = row[StaticConstants.CLASS_COLUMN];
+	//					currRun[StaticConstants.CLASS_COLUMN].setStart(lineCount);
+	//					currRun[StaticConstants.CLASS_COLUMN].setEnd(lineCount+1);
+	//				}
+	//			}
+	//			lineCount++;
+	//		}
+	//		br.close();
+	//	}
 
 	/************************* *************************/   
 
@@ -366,19 +366,19 @@ public class TreeClassifier
 	 */
 	public void trainTreeClassifier(int dataset) throws IOException
 	{
-		System.out.println("Training Dataset "+Integer.toString(dataset+1));
-		System.out.print("\tComputing Attribute and Class Subsets");
+//		System.out.println("Training Dataset "+Integer.toString(dataset+1));
+//		System.out.print("\tComputing Attribute and Class Subsets");
 		computeSubsets2(dataset);
-		System.out.println(" ...done");
-		System.out.print("\tConstructing Arguments for ID3");
+//		System.out.println(" ...done");
+//		System.out.print("\tConstructing Arguments for ID3");
 		DataSubset exampleSubset = new DataSubset();
 		exampleSubset.addRun(new Interval(0, StaticConstants.DATA_LENGTH));
 		DataSubset attributeSubset = new DataSubset();
 		exampleSubset.addRun(new Interval(0, StaticConstants.CLASS_COLUMN));
-		System.out.println(" ...done");
-		System.out.print("\tConstructing Decision Tree");
+//		System.out.println(" ...done");
+//		System.out.print("\tConstructing Decision Tree");
 		classifierTree = makeTree(exampleSubset, attributeSubset);
-		System.out.println(" ...done");
+//		System.out.println(" ...done");
 	}
 
 	/************************* *************************/   
@@ -408,7 +408,7 @@ public class TreeClassifier
 	 */
 	public float testTreeClassifier(int dataset) throws IOException
 	{
-		System.out.println("Testing Dataset "+Integer.toString(dataset+1));
+		//		System.out.println("Testing Dataset "+Integer.toString(dataset+1));
 		int total = 0;
 		int correct = 0;
 		float accuracy = 0;
@@ -428,13 +428,14 @@ public class TreeClassifier
 				throw (new RuntimeException("Invalid data!"));
 			row = currLine.split(",");
 			correct = classify(row, classifierTree).equals(actualClass) ? correct+1 : correct;
-			if (total % 2000 == 0)
-				System.out.println("Classified up to Row "+Integer.toString(total)+" of data");
+			if (total % 2000 == 0) {
+//				System.out.println("Classified up to Row "+Integer.toString(total)+" of data");
+			}
 			total++;
 		}
 		br.close();
 		accuracy = (float)correct / (float)total;
-		System.out.println("Classification complete");
+//		System.out.println("Classification complete");
 		System.out.println("Correctly Classified "+Integer.toString(correct)+"/"+Integer.toString(total)+"\nAccuracy = "+Float.toString(accuracy));
 		return accuracy;
 	}
@@ -450,18 +451,18 @@ public class TreeClassifier
 
 	public static float tenfoldValidation() throws IOException
 	{
-		System.out.println("10-FOLD VALIDATION OF ID3 DECISION TREE ON UCI CONNECT4 DATASET");
+		//		System.out.println("10-FOLD VALIDATION OF ID3 DECISION TREE ON UCI CONNECT4 DATASET");
 		float avgAccuracy = 0;
 		TreeClassifier tc;
 		for (int dataset = 0; dataset < 10; dataset++)
 		{
-			System.out.println("---------------------------\nValidating Fold "+Integer.toString(dataset+1));
+			//			System.out.println("---------------------------\nValidating Fold "+Integer.toString(dataset+1));
 			tc = new TreeClassifier();
 			tc.trainTreeClassifier(dataset);
 			avgAccuracy += tc.testTreeClassifier(dataset) * StaticConstants.TESTING_DATA_LENGTH[dataset];
 		}
 		avgAccuracy /= StaticConstants.DATA_LENGTH;
-		System.out.println("---------------------------\nCROSS VALIDATION COMPLETE\nAverage Accuracy = "+Float.toString(avgAccuracy));
+		//		System.out.println("---------------------------\nCROSS VALIDATION COMPLETE\nAverage Accuracy = "+Float.toString(avgAccuracy));
 		return avgAccuracy;
 	}
 
@@ -547,20 +548,20 @@ public class TreeClassifier
 	 */
 	public static void main(String args[]) throws IOException
 	{
-//		TreeClassifier tc1 = new TreeClassifier();
-//		tc1.computeSubsets1(0);
-//		System.out.println(tc1.subsetsByAttribute[0][0]);
-//		System.out.println(tc1.subsetsByAttribute[0][1]);
-//		System.out.println(tc1.subsetsByAttribute[0][2]);
+		//		TreeClassifier tc1 = new TreeClassifier();
+		//		tc1.computeSubsets1(0);
+		//		System.out.println(tc1.subsetsByAttribute[0][0]);
+		//		System.out.println(tc1.subsetsByAttribute[0][1]);
+		//		System.out.println(tc1.subsetsByAttribute[0][2]);
 
 		TreeClassifier tc2 = new TreeClassifier();
 		tc2.computeSubsets2(0);
-		System.out.println(tc2.subsetsByAttribute[3][0].printHead());
-		System.out.println(tc2.subsetsByAttribute[3][1].printHead());
-		System.out.println(tc2.subsetsByAttribute[3][2].printHead());
+		//		System.out.println(tc2.subsetsByAttribute[3][0].printHead());
+		//		System.out.println(tc2.subsetsByAttribute[3][1].printHead());
+		//		System.out.println(tc2.subsetsByAttribute[3][2].printHead());
 		tc2.tenfoldValidation();
 
-//		float crossAvg = tenfoldValidation();
+		//		float crossAvg = tenfoldValidation();
 	}
 
 }
