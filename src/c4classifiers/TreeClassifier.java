@@ -525,7 +525,18 @@ public class TreeClassifier
      */
     public static void main(String args[]) throws IOException
     {
-	float crossAvg = tenfoldValidation();
+	TreeClassifier tc1 = new TreeClassifier();
+	TreeClassifier tc2 = new TreeClassifier();
+
+	tc1.computeSubsets(0);
+	//tc2.computeSubsets2(0);
+
+	System.out.println(tc1.subsetsByAttribute[0][0]);
+	System.out.println(tc1.subsetsByAttribute[0][1]);
+	System.out.println(tc1.subsetsByAttribute[0][2]);
+	//System.out.println(tc2.subsetsByAttribute[0][0]);
+
+	// float crossAvg = tenfoldValidation();
     }
 
 }
