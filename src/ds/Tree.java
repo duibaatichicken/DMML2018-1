@@ -6,6 +6,7 @@
 
 package ds;
 import java.util.HashMap;
+import java.util.Iterator;
 
 class TreeNode
 {
@@ -136,6 +137,22 @@ public class Tree
 	return this.root.getLabel().equals(null);
     }
 
+    //string representation
+    /*public String toString()
+    {
+	String ans = "";
+	ans = ans + this.root.getLabel();
+	ans = ans +"\n|\n--------------------\n";
+	for (int i = 0; i < this.root.getChildren().size(); i++)
+	    ans = ans+"|\t";
+	ans = ans+"\n";
+	Iterator<String> subtreeIter = this.root.getChildren().keySet().iterator();
+	while (subtreeIter.hasNext())
+	{
+	    String branch = subtreeIter.next();
+	    ans = ans + "("+branch+")";
+	    Tree s = this.root.getChildren().get(branch);
+    */	    
 }
 
     

@@ -42,5 +42,6 @@ public class StaticConstants {
 	 "/home/ankita/DMML2018-1/src/data/connect4-cv_test_data-10-05.data", "/home/ankita/DMML2018-1/src/data/connect4-cv_test_data-10-06.data",
 	 "/home/ankita/DMML2018-1/src/data/connect4-cv_test_data-10-07.data", "/home/ankita/DMML2018-1/src/data/connect4-cv_test_data-10-08.data",
 	 "/home/ankita/DMML2018-1/src/data/connect4-cv_test_data-10-09.data", "/home/ankita/DMML2018-1/src/data/connect4-cv_test_data-10-10.data"};
+    public static final float ID3Threshold = 0;
     
 }

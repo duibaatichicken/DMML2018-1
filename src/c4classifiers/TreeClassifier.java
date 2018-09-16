@@ -20,10 +20,12 @@ package c4classifiers;
     Return Root
 
  */
+/* Our Modified version 
+ * Considers 3 classes
+ */
 
 /* BIG TODO PANDA LISTEN (details inline)
 # | ISSUE | LINE NOS. (fuzzy) |
-4 | Need getIntersectionWith to be defined
 */
 
 import java.io.*;
@@ -34,7 +36,7 @@ import util.StaticConstants;
 import util.HelperFunctionsDazzle;
 
 /* A classifier for connect4 dataset
- * using ID3 decision tree algorithm
+ * using (modified) ID3 decision tree algorithm
  */
 
 public class TreeClassifier
@@ -247,6 +249,7 @@ public class TreeClassifier
 	double currEntropy, minEntropy = 1;
 	int bestAttribute = -1;
 	DataSubset subExamples;
+	double rootEntropy = entropyOf(examples);
 	// while loop to go over attributes and pick best according to entropy
 	while (attributeIter.hasNext()) 
 	{
@@ -272,7 +275,7 @@ public class TreeClassifier
 	    }
 	    
 	    // compare with Shannon entropy corresponding to other attributes, and maintain minimum
-	    if (currEntropy < minEntropy)
+	    if ((currEntropy <= (1+StaticConstants.ID3Threshold)*rootEntropy) && (currEntropy < minEntropy)) //can vary the threshold from statics
 	    {
 		minEntropy = currEntropy;
 		bestAttribute = currAttribute;
@@ -280,7 +283,10 @@ public class TreeClassifier
 	}
 
 	if (bestAttribute < 0)
-	    throw (new RuntimeException ("Bad Algorithm!"));
+	    {   //throw (new RuntimeException ("Bad Algorithm!"));
+	    decisionTree.setRootLabel(majority);
+	       return decisionTree;
+	}
 
 	// label root node by best attribute
 	decisionTree.setRootLabel(Integer.toString(bestAttribute));
@@ -339,7 +345,10 @@ public class TreeClassifier
 	if (row.length != StaticConstants.CLASS_COLUMN + 1)
 	    throw (new RuntimeException("Invalid data!"));
 	if (subTreeHere.isLeaf())
+	{
+	    //System.out.println("Classified as :"+subTreeHere.getRootLabel());
 	    return subTreeHere.getRootLabel();
+	}
 	int attributeHere = Integer.parseInt(subTreeHere.getRootLabel());
 	String valueHere = row[attributeHere];
 	Tree subTreeNext = subTreeHere.getSubtree(valueHere);
@@ -351,13 +360,15 @@ public class TreeClassifier
     /**
      * @throws IOException
      * @description tests the test data by repeatedly calling classify
-     * using classifierTree
+     * using classifierTree. computes accuracy per class and overall.
      */
     public float testTreeClassifier(int dataset) throws IOException
     {
 	System.out.println("Testing Dataset "+Integer.toString(dataset+1));
 	int total = 0;
 	int correct = 0;
+	int[] corrects = {0,0,0};
+	int[] totals = {0,0,0};// draw-win-loss
 	float accuracy = 0;
 	BufferedReader br = new BufferedReader (new FileReader (StaticConstants.TESTING_SOURCE_DAZZLE[dataset]));
 	String currLine = "";
@@ -366,23 +377,43 @@ public class TreeClassifier
 	while ((currLine = br.readLine()) != null)
 	{
 	    if (currLine.endsWith("win"))
+	    {
 		actualClass = "win";
+		totals[1]++;
+	    }
 	    else if (currLine.endsWith("draw"))
+	    {
 		actualClass = "draw";
+		totals[0]++;
+	    }
 	    else if (currLine.endsWith("loss"))
+	    {
 		actualClass = "loss";
+		totals[2]++;
+	    }
 	    else
 		throw (new RuntimeException("Invalid data!"));
+	    //System.out.println("Actual class : "+actualClass); // testing
 	    row = currLine.split(",");
-	    correct = classify(row, classifierTree).equals(actualClass) ? correct+1 : correct;
+	    if (classify(row, classifierTree).equals(actualClass))
+	    {
+		correct++;
+		corrects[HelperFunctionsDazzle.classToInt(row[StaticConstants.CLASS_COLUMN])]++;
+	    }
 	    if (total % 2000 == 0)
 		System.out.println("Classified up to Row "+Integer.toString(total)+" of data");
 	    total++;
+	    totals[HelperFunctionsDazzle.classToInt(row[StaticConstants.CLASS_COLUMN])]++;
 	}
 	br.close();
 	accuracy = (float)correct / (float)total;
 	System.out.println("Classification complete");
-        System.out.println("Correctly Classified "+Integer.toString(correct)+"/"+Integer.toString(total)+"\nAccuracy = "+Float.toString(accuracy));
+        System.out.println("Correctly Classified :");
+	System.out.println(corrects[1]+"/"+totals[1]+" wins");
+	System.out.println(corrects[0]+"/"+totals[0]+" draws");
+	System.out.println(corrects[2]+"/"+totals[2]+" losses");
+	System.out.println(correct+"/"+total+" TOTAL");
+	System.out.println("Accuracy = "+accuracy);
         return accuracy;
     }
     
@@ -405,9 +436,9 @@ public class TreeClassifier
 	    System.out.println("---------------------------\nValidating Fold "+Integer.toString(dataset+1));
 	    tc = new TreeClassifier();
 	    tc.trainTreeClassifier(dataset);
-	    avgAccuracy += tc.testTreeClassifier(dataset) * StaticConstants.TESTING_DATA_LENGTH[dataset];
+	    avgAccuracy += tc.testTreeClassifier(dataset);
 	}
-	avgAccuracy /= StaticConstants.DATA_LENGTH;
+	avgAccuracy /= 10;
 	System.out.println("---------------------------\nCROSS VALIDATION COMPLETE\nAverage Accuracy = "+Float.toString(avgAccuracy));
 	return avgAccuracy;
     }
