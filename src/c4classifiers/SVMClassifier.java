@@ -51,8 +51,13 @@ public class SVMClassifier {
 	/**
 	 * @description optimizer
 	 */
-	private void getOptimizedPoint()
-        {
+	private void optimize(ConvexMultiVariateRealFunction objectiveFunction, double[] initPoint, ConvexMultiVariateRealFunction[] inequalities)
+    {
+		OptimizationRequest or = new OptimizationRequest();
+		or.setF0(objectiveFunction);
+		or.setInitialPoint(initPoint);
+		or.setFi(inequalities);
+		
 		JOptimizer opt = new JOptimizer();
 		opt.setOptimizationRequest(or);
 		opt.optimize(); 
